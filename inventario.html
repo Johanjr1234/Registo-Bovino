@@ -5,31 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Ganadero | Mi Finca</title>
     <style>
+        /* Estilos Generales */
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { color: #2e7d32; text-align: center; }
-        .tab-button { background-color: #5cb85c; color: white; padding: 10px 15px; margin: 5px 0; border: none; border-radius: 4px; cursor: pointer; display: block; width: 100%; text-align: left; }
-        .tab-button:hover { background-color: #4cae4c; }
+        h2 { color: #2e7d32; text-align: center; margin-top: 10px; }
+
+        /* ESTILOS DEL MENÚ (IGUAL QUE EN EL REGISTRO) */
+        .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-btn { flex: 1; padding: 12px; text-align: center; background: #eee; text-decoration: none; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 0.9em; }
+        .nav-btn.active { background: #2e7d32; color: white; border: none; }
+
+        /* Estilos de las Tarjetas de Animales */
         .animal-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 6px; background-color: #fff; }
-        .animal-header { font-size: 1.1em; font-weight: bold; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        .animal-header { font-size: 1.1em; font-weight: bold; color: #333; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        
+        /* Detalles ocultos */
         .animal-details { display: none; padding-top: 10px; border-top: 1px dashed #eee; margin-top: 10px; }
         .animal-details p { margin: 5px 0; font-size: 0.9em; }
-        .animal-details img { max-width: 100px; height: auto; border-radius: 4px; margin-top: 10px; }
+        .animal-details img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 10px; display: block; margin-left: auto; margin-right: auto; }
+        
         .age-badge { background-color: #f0ad4e; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em; margin-left: 10px; }
         .offspring-list { margin-top: 10px; border: 1px solid #c3e6cb; padding: 10px; border-radius: 4px; background-color: #d4edda; }
     </style>
 </head>
 <body>
     <div class="container">
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-btn">📝 Registro</a>
+            <a href="inventario.html" class="nav-btn active">📋 Inventario</a>
+        </nav>
+
         <h2>Inventario General 📋</h2>
         
-        <p>Aquí se listará todo tu ganado. Toca el nombre de un animal para ver su detalle y sus crías.</p>
+        <p style="text-align: center; color: #666; font-size: 0.9em;">Toca el nombre de un animal para ver su detalle y sus crías.</p>
 
         <div id="inventario-listado">
             <p style="text-align: center;">Cargando inventario...</p>
         </div>
-        
-        <a href="index.html" style="display: block; text-align: center; margin-top: 30px; color: #2e7d32;">← Volver al Formulario de Registro</a>
     </div>
 
     <script type="module" src="app.js"></script>
