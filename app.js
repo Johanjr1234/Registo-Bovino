@@ -40,9 +40,9 @@ window.eliminarAnimal = async (id, nombre) => {
     }
 };
 
-window.editarAnimal = async (id, nombre, raza) => {
-    const n = prompt("Nombre:", nombre); if (n === null) return;
-    const r = prompt("Raza:", raza); if (r === null) return;
+window.editarAnimal = async (id, nombreActual, razaActual) => {
+    const n = prompt("Nombre:", nombreActual); if (n === null) return;
+    const r = prompt("Raza:", razaActual); if (r === null) return;
     try {
         await updateDoc(doc(db, "animales", id), { nombre: n.toUpperCase(), raza: r });
         alert("✅ Actualizado.");
@@ -64,48 +64,46 @@ function calcularEdad(dateString) {
     if (!dateString) return "--";
     const birth = new Date(dateString);
     const now = new Date();
-    let y = now.getFullYear() - birth.getFullYear();
-    let m = now.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) { y--; m += 12; }
-    if (y === 0 && m === 0) return "Recién nacido";
-    if (y === 0) return `${m} Meses`;
-    if (m === 0) return `${y} Años`;
-    return `${y} Años, ${m} Meses`;
+    let years = now.getFullYear() - birth.getFullYear();
+    let months = now.getMonth() - birth.getMonth();
+    if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) { years--; months += 12; }
+    if (years === 0 && months === 0) return "Recién nacido";
+    if (years === 0) return `${months} Meses`;
+    if (months === 0) return `${years} Años`;
+    return `${years} Años, ${months} Meses`;
 }
 
 function formatCOP(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v); }
 
-// --- 4. LÓGICA DE REGISTRO INTELIGENTE ---
+// --- 4. LÓGICA DE REGISTRO ---
 const form = document.getElementById('registroForm');
 const selectMadre = document.getElementById('idMadre');
 const selectPadre = document.getElementById('idPadre');
 
-// Función para llenar los Selects automáticamente
 async function cargarOpcionesPadres() {
     if (!selectMadre || !selectPadre) return;
     
     try {
         const snap = await getDocs(collection(db, "animales"));
-        // Limpiar opciones
         selectMadre.innerHTML = '<option value="">-- Ninguna (Opcional) --</option>';
         selectPadre.innerHTML = '<option value="">-- Ninguno (Opcional) --</option>';
 
         snap.forEach(doc => {
             const a = doc.data();
-            if (a.estado === "VENDIDO") return; // Solo listar animales activos
+            if (a.estado === "VENDIDO") return;
 
             const opcion = document.createElement('option');
-            opcion.value = a.nombre; // Guardamos el NOMBRE como ID de referencia
+            opcion.value = a.nombre;
             opcion.textContent = `${a.nombre} (${a.raza})`;
 
-            if (a.sexo === 'H') selectMadre.appendChild(opcion); // Va a lista de Madres
-            if (a.sexo === 'M') selectPadre.appendChild(opcion); // Va a lista de Padres
+            if (a.sexo === 'H') selectMadre.appendChild(opcion);
+            if (a.sexo === 'M') selectPadre.appendChild(opcion);
         });
     } catch (e) { console.error("Error cargando padres", e); }
 }
 
 if (form) {
-    cargarOpcionesPadres(); // Ejecutar al cargar la página de registro
+    cargarOpcionesPadres();
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -120,8 +118,8 @@ if (form) {
                 fechaNacimiento: document.getElementById('fechaNacimiento').value || null,
                 sexo: document.getElementById('sexo').value,
                 raza: document.getElementById('raza').value,
-                idMadre: document.getElementById('idMadre').value || null, // Toma del Select
-                idPadre: document.getElementById('idPadre').value || null, // Nuevo campo Padre
+                idMadre: document.getElementById('idMadre').value || null,
+                idPadre: document.getElementById('idPadre').value || null,
                 estado: document.getElementById('estado').value,
                 precioCompra: parseFloat(document.getElementById('precioCompra').value) || 0,
                 precioVenta: 0,
@@ -130,12 +128,12 @@ if (form) {
             });
             msg.textContent = '✅ Guardado!'; msg.style.color = 'green';
             form.reset();
-            cargarOpcionesPadres(); // Recargar listas
+            cargarOpcionesPadres();
         } catch (e) { msg.textContent = '❌ Error: ' + e.message; msg.style.color = 'red'; }
     });
 }
 
-// --- 5. INVENTARIO ---
+// --- 5. INVENTARIO (AJUSTE FINAL) ---
 const listado = document.getElementById('inventario-listado');
 window.cargarInventario = async (verHistorial = false) => {
     if (!listado) return;
@@ -147,22 +145,23 @@ window.cargarInventario = async (verHistorial = false) => {
         snap.forEach(d => data.push({ id: d.id, ...d.data() }));
 
         const listaFiltrada = data.filter(a => verHistorial ? (a.estado === "VENDIDO") : (a.estado !== "VENDIDO"));
+
         if (listaFiltrada.length === 0) { listado.innerHTML = `<p style="text-align: center; margin-top:20px;">${verHistorial ? 'Sin ventas.' : 'Corral vacío.'}</p>`; return; }
 
         const mapaHijos = {};
-        listaFiltrada.forEach(a => {
-            if (a.idMadre) {
-                if (!mapaHijos[a.idMadre]) mapaHijos[a.idMadre] = [];
-                mapaHijos[a.idMadre].push(a);
+        listaFiltrada.forEach(animal => {
+            if (animal.idMadre) {
+                if (!mapaHijos[animal.idMadre]) mapaHijos[animal.idMadre] = [];
+                mapaHijos[animal.idMadre].push(animal);
             }
         });
 
         listado.innerHTML = '';
-        const presentes = listaFiltrada.map(a => a.nombre);
+        const nombresPresentes = listaFiltrada.map(a => a.nombre);
         const fb = "https://cdn-icons-png.flaticon.com/512/1998/1998610.png";
 
         listaFiltrada.forEach(animal => {
-            if (!verHistorial && animal.idMadre && presentes.includes(animal.idMadre)) return; 
+            if (!verHistorial && animal.idMadre && nombresPresentes.includes(animal.idMadre)) return; 
 
             const edad = calcularEdad(animal.fechaNacimiento);
             const hijos = mapaHijos[animal.nombre] || [];
@@ -171,17 +170,19 @@ window.cargarInventario = async (verHistorial = false) => {
             let hijosHTML = '';
             if (hijos.length > 0) {
                 hijosHTML = `<div class="offspring-container">
-                    <span class="offspring-title">🧬 Descendencia (${hijos.length})</span>
+                    <span class="offspring-title">🧬 Descendencia (${hijos.length}) - Toca para opciones</span>
                     ${hijos.map(h => {
                         const hEdad = calcularEdad(h.fechaNacimiento);
                         const hFoto = h.fotoURL || fb;
+                        const hFecha = h.fechaNacimiento || '--'; // Nueva variable para la fecha
                         return `
                         <div class="mini-cria-card">
                             <div class="mini-header" onclick="event.stopPropagation(); window.toggleChildActions('${h.id}')">
                                 <img src="${hFoto}" class="mini-thumb" onerror="this.src='${fb}'">
                                 <div class="mini-info">
                                     <strong>${h.nombre} (${h.sexo})</strong><br>
-                                    <span style="color:#2e7d32; font-weight:bold;">${hEdad}</span> </div>
+                                    <span style="color:#2e7d32; font-weight:bold;">${hEdad}</span> 
+                                    <small style="color: #666; margin-left: 5px;">(${hFecha})</small> </div>
                             </div>
                             <div id="child-actions-${h.id}" class="mini-actions" style="display:none;">
                                 <button class="btn-mini btn-editar" onclick="window.editarAnimal('${h.id}', '${h.nombre}', '${h.raza}')">✏️ Editar</button>
@@ -193,8 +194,19 @@ window.cargarInventario = async (verHistorial = false) => {
                 </div>`;
             }
 
+            let botonesHTML = '';
+            if (verHistorial) {
+                botonesHTML = `<div class="acciones"><button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️ Borrar Historial</button></div>`;
+            } else {
+                botonesHTML = `<div class="acciones">
+                    <button class="btn-accion btn-editar" onclick="window.editarAnimal('${animal.id}', '${animal.nombre}', '${animal.raza}')">✏️ Editar</button>
+                    <button class="btn-accion btn-vender" onclick="window.venderAnimal('${animal.id}', '${animal.nombre}')">💰 Vender</button>
+                    <button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️</button>
+                </div>`;
+            }
+
             const thumbHTML = animal.fotoURL ? `<img src="${animal.fotoURL}" class="cow-thumb" onerror="this.src='${fb}'">` : `<div class="no-thumb">🐮</div>`;
-            const infoPadre = animal.idPadre ? `<p><strong>Padre:</strong> ${animal.idPadre}</p>` : ''; // Mostrar Padre
+            const infoPadre = animal.idPadre ? `<p><strong>Padre:</strong> ${animal.idPadre}</p>` : '';
 
             listado.innerHTML += `
                 <div class="animal-card">
@@ -213,16 +225,9 @@ window.cargarInventario = async (verHistorial = false) => {
                         ${verHistorial ? `<p><strong>Venta:</strong> ${formatCOP(animal.precioVenta)}</p>` : `<p><strong>Compra:</strong> ${formatCOP(animal.precioCompra)}</p>`}
                         <p><strong>Nacimiento:</strong> ${animal.fechaNacimiento || '--'}</p>
                         ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-grande">` : ''}
+
                         ${hijosHTML}
-                        
-                        <div class="acciones">
-                            ${verHistorial 
-                                ? `<button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️ Borrar Historial</button>`
-                                : `<button class="btn-accion btn-editar" onclick="window.editarAnimal('${animal.id}', '${animal.nombre}', '${animal.raza}')">✏️ Editar</button>
-                                   <button class="btn-accion btn-vender" onclick="window.venderAnimal('${animal.id}', '${animal.nombre}')">💰 Vender</button>
-                                   <button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️</button>`
-                            }
-                        </div>
+                        ${botonesHTML}
                     </div>
                 </div>
             `;
