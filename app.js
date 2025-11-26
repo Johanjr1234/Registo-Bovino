@@ -2,18 +2,55 @@
 import { db, IMGBB_API_KEY } from './firebase-config.js'; 
 import { collection, addDoc, getDocs, doc, updateDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// --- FUNCIONES DE UTILIDAD ---
+// --- 1. FUNCIONES GLOBALES (Para que funcionen los botones en el HTML) ---
 
-// Subir a ImgBB
+// Función para ABRIR/CERRAR los detalles (CORREGIDA)
+window.toggleDetails = (id) => {
+    const elemento = document.getElementById(`details-${id}`);
+    if (elemento.style.display === 'block') {
+        elemento.style.display = 'none'; // Cerrar
+    } else {
+        elemento.style.display = 'block'; // Abrir
+    }
+};
+
+// Función para VENDER
+window.venderAnimal = async (id, nombre) => {
+    let precio = prompt(`¿En cuánto se vendió a ${nombre}? \n(Solo números. Si murió, pon 0)`);
+    if (precio === null) return; 
+
+    precio = parseFloat(precio);
+    if (isNaN(precio)) {
+        alert("Número no válido.");
+        return;
+    }
+
+    if (!confirm(`¿Confirmar venta/salida de ${nombre}?`)) return;
+
+    try {
+        const animalRef = doc(db, "animales", id);
+        await updateDoc(animalRef, {
+            estado: "VENDIDO",
+            precioVenta: precio
+        });
+        alert("✅ Estado actualizado.");
+        location.reload(); 
+    } catch (error) {
+        alert("Error: " + error.message);
+    }
+};
+
+// --- 2. FUNCIONES DE UTILIDAD ---
+
 async function subirFotoAImgBB(file) {
-    if (!IMGBB_API_KEY) throw new Error("Falta la API Key de ImgBB");
+    if (!IMGBB_API_KEY) throw new Error("Falta API Key ImgBB");
     const formData = new FormData();
     formData.append("image", file);
     formData.append("key", IMGBB_API_KEY);
     const response = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body: formData });
     const result = await response.json();
     if (result.success) return result.data.url;
-    else throw new Error("ImgBB falló: " + (result.error?.message || "Error desconocido"));
+    else throw new Error("Error subiendo imagen");
 }
 
 function calcularEdad(dateString) {
@@ -33,83 +70,42 @@ function formatCOP(amount) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 }
 
-// --- FUNCIÓN PARA VENDER (Disponible globalmente) ---
-window.venderAnimal = async (id, nombre) => {
-    // 1. Preguntar precio de venta
-    let precio = prompt(`¿En cuánto se vendió a ${nombre}? \n(Ingresa solo números. Si murió o no hubo pago, pon 0)`);
-    
-    if (precio === null) return; // Si le da Cancelar, no hace nada
-
-    precio = parseFloat(precio);
-    if (isNaN(precio)) {
-        alert("Por favor ingresa un número válido.");
-        return;
-    }
-
-    // 2. Confirmación final
-    if (!confirm(`¿Seguro que quieres marcar a ${nombre} como VENDIDO/SALIDA por ${formatCOP(precio)}?`)) return;
-
-    try {
-        // 3. Actualizar en Firebase
-        const animalRef = doc(db, "animales", id);
-        await updateDoc(animalRef, {
-            estado: "VENDIDO",
-            precioVenta: precio
-        });
-        
-        alert(`✅ ${nombre} ha salido del inventario activo.`);
-        location.reload(); // Recargar página para actualizar lista
-
-    } catch (error) {
-        console.error("Error al vender:", error);
-        alert("Hubo un error al actualizar: " + error.message);
-    }
-};
-
-
-// --- REGISTRO ---
+// --- 3. LÓGICA DE REGISTRO ---
 const registroForm = document.getElementById('registroForm');
 if (registroForm) {
     registroForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const mensaje = document.getElementById('mensaje');
-        mensaje.textContent = 'Subiendo foto y guardando...';
+        mensaje.textContent = 'Guardando...';
         mensaje.style.color = 'black';
 
-        const nombre = document.getElementById('nombre').value;
-        const fechaNacimiento = document.getElementById('fechaNacimiento').value || null;
-        const sexo = document.getElementById('sexo').value;
-        const raza = document.getElementById('raza').value;
-        const idMadre = document.getElementById('idMadre').value || null;
-        const estado = document.getElementById('estado').value;
-        const precioCompra = parseFloat(document.getElementById('precioCompra').value) || 0;
-        const fotoFile = document.getElementById('foto').files[0];
-        
-        let fotoURL = '';
-
         try {
+            const nombre = document.getElementById('nombre').value.toUpperCase();
+            const fotoFile = document.getElementById('foto').files[0];
+            let fotoURL = '';
+
             if (fotoFile) {
+                mensaje.textContent = 'Subiendo foto...';
                 fotoURL = await subirFotoAImgBB(fotoFile);
             }
 
             const nuevoAnimal = {
-                nombre: nombre.toUpperCase(),
-                fechaNacimiento: fechaNacimiento,
-                sexo: sexo,
-                raza: raza,
-                idMadre: idMadre ? idMadre.toUpperCase() : null,
-                estado: estado, // ACTIVO o COMPRADO
-                precioCompra: precioCompra,
+                nombre: nombre,
+                fechaNacimiento: document.getElementById('fechaNacimiento').value || null,
+                sexo: document.getElementById('sexo').value,
+                raza: document.getElementById('raza').value,
+                idMadre: document.getElementById('idMadre').value ? document.getElementById('idMadre').value.toUpperCase() : null,
+                estado: document.getElementById('estado').value,
+                precioCompra: parseFloat(document.getElementById('precioCompra').value) || 0,
                 precioVenta: 0,
                 fechaRegistro: serverTimestamp(),
                 fotoURL: fotoURL
             };
 
             await addDoc(collection(db, 'animales'), nuevoAnimal);
-            mensaje.textContent = `✅ ¡${nombre} registrado con éxito!`;
+            mensaje.textContent = `✅ ${nombre} registrado!`;
             mensaje.style.color = 'green';
             registroForm.reset();
-            
         } catch (error) {
             mensaje.textContent = '❌ Error: ' + error.message;
             mensaje.style.color = 'red';
@@ -117,56 +113,50 @@ if (registroForm) {
     });
 }
 
-// --- INVENTARIO ---
+// --- 4. LÓGICA DE INVENTARIO ---
 const inventarioListado = document.getElementById('inventario-listado');
 if (inventarioListado) {
     async function cargarInventario() {
-        inventarioListado.innerHTML = '<p style="text-align: center;">Cargando ganado...</p>';
         try {
             const querySnapshot = await getDocs(collection(db, "animales"));
             const animalesData = [];
             querySnapshot.forEach((doc) => animalesData.push({ id: doc.id, ...doc.data() }));
             
+            // Filtrar y ordenar: Primero las crías
             const mapaDescendencia = {};
-            const animalesMadres = [];
-            
-            // Filtramos solo los ACTIVOS para la lista principal
-            // (Si quieres ver los vendidos, habría que hacer otra lista)
-            const animalesActivos = animalesData.filter(a => a.estado !== "VENDIDO");
+            const animalesMostrar = []; // Lista final
 
+            // Primero, organizamos quién es hijo de quién
             animalesData.forEach(animal => {
-                if (animal.idMadre) {
-                    const madreID = animal.idMadre;
-                    if (!mapaDescendencia[madreID]) mapaDescendencia[madreID] = [];
-                    mapaDescendencia[madreID].push(animal);
+                if (animal.estado !== "VENDIDO") { // Solo mostrar activos
+                    if (animal.idMadre) {
+                        const madreID = animal.idMadre;
+                        if (!mapaDescendencia[madreID]) mapaDescendencia[madreID] = [];
+                        mapaDescendencia[madreID].push(animal);
+                    }
+                    animalesMostrar.push(animal); // Agregamos todos a la lista principal
                 }
-            });
-            
-            // Llenamos la lista principal con los activos que no son crías directas de nadie en la lista
-            // O mejor: Listamos TODOS los activos
-            animalesActivos.forEach(animal => {
-                // Si es cría, igual la mostramos en la lista general si está activa
-                animalesMadres.push(animal);
             });
 
             inventarioListado.innerHTML = '';
-            if (animalesMadres.length === 0) {
+            if (animalesMostrar.length === 0) {
                  inventarioListado.innerHTML = '<p style="text-align: center;">No hay animales activos.</p>';
                  return;
             }
             
-            animalesMadres.forEach(animal => {
+            animalesMostrar.forEach(animal => {
                 const edad = calcularEdad(animal.fechaNacimiento);
                 const crías = mapaDescendencia[animal.nombre] || [];
 
-                // Lógica de la miniatura
+                // Lógica de miniatura: Si hay URL, muestra foto. Si no, muestra ícono.
+                // Agregamos un "onerror" por si la foto vieja está rota.
                 const thumbHTML = animal.fotoURL 
-                    ? `<img src="${animal.fotoURL}" class="cow-thumb" alt="foto">`
+                    ? `<img src="${animal.fotoURL}" class="cow-thumb" alt="foto" onerror="this.src=''; this.className='no-thumb'; this.innerHTML='🐮'">`
                     : `<div class="no-thumb">🐮</div>`;
 
                 const cardHTML = `
                     <div class="animal-card">
-                        <div class="animal-header" onclick="document.getElementById('details-${animal.id}').style.display = document.getElementById('details-${animal.id}').style.display === 'block' ? 'block' : 'none'">
+                        <div class="animal-header" onclick="window.toggleDetails('${animal.id}')">
                             ${thumbHTML}
                             <div class="info-resumen">
                                 <span class="nombre-animal">${animal.nombre} (${animal.sexo})</span>
@@ -201,7 +191,7 @@ if (inventarioListado) {
             });
 
         } catch (error) {
-            inventarioListado.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            inventarioListado.innerHTML = `<p style="color: red;">Error cargando lista: ${error.message}</p>`;
         }
     }
     cargarInventario();
