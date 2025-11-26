@@ -1,38 +1,37 @@
 // Archivo: app.js
-import { db } from './firebase-config.js'; // Ya NO importamos storage
+import { db, IMGBB_API_KEY } from './firebase-config.js'; // Importamos la DB y la llave de ImgBB
 import { collection, addDoc, getDocs, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // --- FUNCIONES DE UTILIDAD ---
 
-// 1. Truco Nuevo: Convertir imagen a Texto (Base64) con compresión
-const convertirImagenATexto = (file) => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            // Creamos una imagen virtual para reducirle el tamaño
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                
-                // Redimensionamos para que no sea gigante (Max 800px)
-                const MAX_WIDTH = 800;
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
+/**
+ * Función CLAVE: Sube la imagen a ImgBB (GRATIS) y devuelve el enlace.
+ * Se encarga de manejar archivos grandes como 4MB.
+ */
+async function subirFotoAImgBB(file) {
+    if (!IMGBB_API_KEY) {
+        throw new Error("ERROR FATAL: La llave IMGBB_API_KEY no está configurada en firebase-config.js");
+    }
 
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Convertimos a texto comprimido (JPEG calidad 0.7)
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                resolve(dataUrl);
-            };
-        };
-        reader.onerror = error => reject(error);
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("key", IMGBB_API_KEY);
+
+    const response = await fetch("https://api.imgbb.com/1/upload", {
+        method: "POST",
+        body: formData,
     });
-};
+
+    const result = await response.json();
+
+    if (result.success) {
+        return result.data.url; // Retorna el enlace directo a la imagen
+    } else {
+        // Muestra el error de ImgBB si falla la subida
+        throw new Error("ImgBB falló: " + (result.error.message || "Error desconocido"));
+    }
+}
+
 
 function calcularEdad(dateString) {
     if (!dateString) return "Edad Desconocida";
@@ -50,6 +49,7 @@ function calcularEdad(dateString) {
 function formatCOP(amount) {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(amount);
 }
+
 
 // --- LÓGICA DE REGISTRO ---
 const registroForm = document.getElementById('registroForm');
@@ -73,12 +73,10 @@ if (registroForm) {
         let fotoURL = '';
 
         try {
-            // AQUI ESTA EL CAMBIO: Convertimos la foto a texto en lugar de subirla a Storage
+            // AQUI ESTA EL CAMBIO: Primero subimos a ImgBB
             if (fotoFile) {
-                if (fotoFile.size > 2 * 1024 * 1024) {
-                    throw new Error("La imagen es muy grande. Intenta tomar una foto con menor calidad.");
-                }
-                fotoURL = await convertirImagenATexto(fotoFile);
+                mensaje.textContent = `Subiendo foto de ${fotoFile.size/1024/1024} MB...`;
+                fotoURL = await subirFotoAImgBB(fotoFile);
             }
 
             const nuevoAnimal = {
@@ -91,12 +89,12 @@ if (registroForm) {
                 precioCompra: precioCompra,
                 precioVenta: 0,
                 fechaRegistro: serverTimestamp(),
-                fotoURL: fotoURL // Aquí guardamos el texto de la imagen
+                fotoURL: fotoURL // Aquí guardamos el ENLACE de ImgBB
             };
 
             await addDoc(collection(db, 'animales'), nuevoAnimal);
 
-            mensaje.textContent = `✅ ¡Animal ${nombre} registrado con foto (modo gratis)!`;
+            mensaje.textContent = `✅ ¡Animal ${nombre} registrado con éxito! (Foto externa OK)`;
             mensaje.style.color = 'green';
             registroForm.reset();
             
@@ -108,7 +106,8 @@ if (registroForm) {
     });
 }
 
-// --- LÓGICA DE LECTURA ---
+// --- LÓGICA DE LECTURA (INVENTARIO) ---
+
 const inventarioListado = document.getElementById('inventario-listado');
 
 if (inventarioListado) {
