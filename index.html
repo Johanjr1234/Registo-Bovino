@@ -3,24 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🐄 Registro Ganadero Digital</title>
+    <title>Registro Ganadero</title>
     <style>
-        /* Estilos Generales */
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* ESTILOS GENERALES */
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; max-width: 600px; margin: auto; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h2 { color: #2e7d32; text-align: center; margin-top: 10px;}
         
-        /* ESTILOS DEL MENÚ (NUEVO) */
+        /* MENÚ */
         .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; }
         .nav-btn { flex: 1; padding: 12px; text-align: center; background: #eee; text-decoration: none; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 0.9em; }
         .nav-btn.active { background: #2e7d32; color: white; border: none; }
 
-        /* Estilos del Formulario */
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 20px; font-size: 1.1em; font-weight: bold;}
+        /* FORMULARIO */
+        label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        
+        /* Estilo especial para los select de padres */
+        select.select-padres { border: 2px solid #a5d6a7; background-color: #f1f8e9; }
+
+        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 25px; font-size: 1.1em; font-weight: bold; border: none; }
         button:hover { background-color: #45a049; }
-        .success { color: green; text-align: center; margin-top: 15px; font-weight: bold;}
+        .success { color: green; text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -52,8 +56,15 @@
             <label for="raza">Raza:</label>
             <input type="text" id="raza" placeholder="Ej: Gyr, Jersey, Cruce...">
 
-            <label for="idMadre">Marca o Número de la Madre (Opcional):</label>
-            <input type="text" id="idMadre" placeholder="Si es cría, ingrese la Marca/ID de la madre">
+            <label for="idMadre">Asignar Madre (Vacas registradas):</label>
+            <select id="idMadre" class="select-padres">
+                <option value="">Cargando lista...</option>
+            </select>
+
+            <label for="idPadre">Asignar Padre (Toros registrados):</label>
+            <select id="idPadre" class="select-padres">
+                <option value="">Cargando lista...</option>
+            </select>
 
             <label for="estado">Estado Inicial:</label>
             <select id="estado" required>
@@ -62,7 +73,7 @@
             </select>
 
             <label for="precioCompra">Precio de Compra (COP si aplica):</label>
-            <input type="number" id="precioCompra" value="0" min="0" placeholder="Solo números, ej: 2500000">
+            <input type="number" id="precioCompra" value="0" min="0" placeholder="Solo números">
 
             <button type="submit">💾 Registrar Animal</button>
             <p id="mensaje" class="success"></p>
