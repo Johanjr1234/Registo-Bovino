@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐄 Registro Ganadero Digital</title>
     <style>
-        /* (Estilos CSS básicos omitidos para brevedad, pero puedes copiarlos del mensaje anterior) */
+        /* (Estilos CSS básicos - sin cambios) */
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h2 { color: #2e7d32; text-align: center; }
@@ -26,8 +26,8 @@
             <label for="foto">Foto del Animal:</label>
             <input type="file" id="foto" accept="image/*">
 
-            <label for="fechaNacimiento">Fecha de Nacimiento:</label>
-            <input type="date" id="fechaNacimiento" required>
+            <label for="fechaNacimiento">Fecha de Nacimiento (Opcional):</label>
+            <input type="date" id="fechaNacimiento"> 
 
             <label for="sexo">Sexo:</label>
             <select id="sexo" required>
@@ -39,8 +39,8 @@
             <label for="raza">Raza:</label>
             <input type="text" id="raza" placeholder="Ej: Gyr, Jersey, Cruce...">
 
-            <label for="idMadre">ID / Número de la Madre (Opcional):</label>
-            <input type="text" id="idMadre" placeholder="Si es cría, ingrese el ID de la madre">
+            <label for="idMadre">Marca o Número de la Madre (Opcional):</label>
+            <input type="text" id="idMadre" placeholder="Si es cría, ingrese la Marca/ID de la madre">
 
             <label for="estado">Estado Inicial:</label>
             <select id="estado" required>
@@ -48,8 +48,8 @@
                 <option value="COMPRADO">Comprado</option>
             </select>
 
-            <label for="precioCompra">Precio de Compra (si aplica):</label>
-            <input type="number" id="precioCompra" value="0" min="0">
+            <label for="precioCompra">Precio de Compra (COP si aplica):</label>
+            <input type="number" id="precioCompra" value="0" min="0" placeholder="Solo números, ej: 2500000">
 
             <button type="submit">💾 Registrar Animal</button>
             <p id="mensaje" class="success"></p>
