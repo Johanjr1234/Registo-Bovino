@@ -5,20 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐄 Registro Ganadero Digital</title>
     <style>
-        /* (Estilos CSS básicos - sin cambios) */
+        /* Estilos Generales */
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
         .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { color: #2e7d32; text-align: center; }
+        h2 { color: #2e7d32; text-align: center; margin-top: 10px;}
+        
+        /* ESTILOS DEL MENÚ (NUEVO) */
+        .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-btn { flex: 1; padding: 12px; text-align: center; background: #eee; text-decoration: none; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 0.9em; }
+        .nav-btn.active { background: #2e7d32; color: white; border: none; }
+
+        /* Estilos del Formulario */
         label { display: block; margin-top: 10px; font-weight: bold; }
         input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 20px; }
+        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 20px; font-size: 1.1em; font-weight: bold;}
         button:hover { background-color: #45a049; }
-        .success { color: green; text-align: center; margin-top: 15px; }
+        .success { color: green; text-align: center; margin-top: 15px; font-weight: bold;}
     </style>
 </head>
 <body>
     <div class="container">
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-btn active">📝 Registro</a>
+            <a href="inventario.html" class="nav-btn">📋 Inventario</a>
+        </nav>
+
         <h2>Registro de Nuevo Animal 🐄</h2>
+        
         <form id="registroForm">
             <label for="nombre">Nombre / Número de Arete:</label>
             <input type="text" id="nombre" required placeholder="Ej: Lola / 0015">
