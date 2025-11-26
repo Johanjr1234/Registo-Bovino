@@ -3,61 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventario Ganadero | Mi Finca</title>
+    <title>Inventario Ganadero</title>
     <style>
-        /* Estilos Generales */
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h2 { color: #2e7d32; text-align: center; margin-top: 10px; }
-
-        /* MENÚ */
-        .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; }
-        .nav-btn { flex: 1; padding: 12px; text-align: center; background: #eee; text-decoration: none; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 0.9em; }
+        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; max-width: 800px; margin: auto; }
+        
+        /* NAV SUPERIOR */
+        .nav-menu { display: flex; gap: 10px; margin-bottom: 15px; }
+        .nav-btn { flex: 1; padding: 12px; text-align: center; background: #fff; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; text-decoration: none; }
         .nav-btn.active { background: #2e7d32; color: white; border: none; }
 
-        /* TARJETAS DE ANIMALES */
-        .animal-card { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 8px; background-color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
-        /* CABECERA CON FOTO MINIATURA */
-        .animal-header { display: flex; align-items: center; cursor: pointer; gap: 10px; }
-        
-        /* Estilo de la foto pequeña (miniatura) */
-        .cow-thumb { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #2e7d32; }
-        .no-thumb { width: 50px; height: 50px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 2px solid #ddd; }
+        /* FILTROS (PESTAÑAS) */
+        .filtros { display: flex; gap: 5px; margin-bottom: 15px; background: #e0e0e0; padding: 5px; border-radius: 8px; }
+        .btn-filtro { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #666; border-radius: 5px; }
+        .btn-filtro.seleccionado { background: white; color: #2e7d32; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
+        /* TARJETAS */
+        .animal-card { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 10px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        .animal-header { display: flex; align-items: center; cursor: pointer; gap: 12px; }
+        
+        /* FOTOS */
+        .cow-thumb { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #2e7d32; }
+        .no-thumb { width: 55px; height: 55px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid #ddd; }
+
+        /* INFO TEXTO */
         .info-resumen { flex: 1; }
-        .nombre-animal { font-weight: bold; font-size: 1.1em; color: #333; display: block; }
-        .raza-animal { font-size: 0.85em; color: #666; }
+        .nombre-animal { font-weight: 800; font-size: 1.1em; color: #333; display: block; }
+        .raza-animal { font-size: 0.9em; color: #666; }
+        .age-badge { background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; white-space: nowrap; }
+        .sold-badge { background-color: #d32f2f; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; }
 
-        .age-badge { background-color: #f0ad4e; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; white-space: nowrap; }
-
-        /* DETALLES */
+        /* DETALLES DESPLEGABLES */
         .animal-details { display: none; padding-top: 15px; border-top: 1px dashed #eee; margin-top: 10px; }
-        .animal-details p { margin: 5px 0; font-size: 0.9em; }
-        .foto-grande { max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; display: block; margin-left: auto; margin-right: auto; }
+        .foto-grande { max-width: 100%; border-radius: 8px; margin: 10px auto; display: block; }
         
-        .offspring-list { margin-top: 10px; border: 1px solid #c3e6cb; padding: 10px; border-radius: 4px; background-color: #d4edda; }
+        /* ÁRBOL GENEALÓGICO */
+        .offspring-container { background-color: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 8px; padding: 10px; margin-top: 10px; }
+        .offspring-title { font-size: 0.9em; font-weight: bold; color: #33691e; margin-bottom: 5px; display: block; }
+        .mini-cria { display: flex; align-items: center; gap: 8px; padding: 5px; background: white; border-radius: 5px; margin-bottom: 5px; border: 1px solid #eee; }
+        .mini-thumb { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
 
-        /* BOTÓN VENDER */
-        .btn-vender { width: 100%; background-color: #d32f2f; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        .btn-vender:hover { background-color: #b71c1c; }
+        /* BOTONES DE ACCIÓN */
+        .acciones { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-accion { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 0.9em; }
+        .btn-vender { background-color: #f57f17; } /* Naranja */
+        .btn-editar { background-color: #1976d2; } /* Azul */
+        .btn-eliminar { background-color: #d32f2f; } /* Rojo */
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <nav class="nav-menu">
-            <a href="index.html" class="nav-btn">📝 Registro</a>
-            <a href="inventario.html" class="nav-btn active">📋 Inventario</a>
-        </nav>
+    <nav class="nav-menu">
+        <a href="index.html" class="nav-btn">📝 Registro</a>
+        <a href="inventario.html" class="nav-btn active">📋 Inventario</a>
+    </nav>
 
-        <h2>Inventario General 📋</h2>
-        <p style="text-align: center; color: #666; font-size: 0.9em;">Toca una vaca para ver detalles o venderla.</p>
+    <div class="filtros">
+        <button id="btn-finca" class="btn-filtro seleccionado" onclick="cambiarFiltro(false)">🐮 En Finca</button>
+        <button id="btn-historial" class="btn-filtro" onclick="cambiarFiltro(true)">💰 Historial Ventas</button>
+    </div>
 
-        <div id="inventario-listado">
-            <p style="text-align: center;">Cargando inventario...</p>
-        </div>
+    <div id="inventario-listado">
+        <p style="text-align: center;">Cargando...</p>
     </div>
 
     <script type="module" src="app.js"></script>
+    
+    <script>
+        function cambiarFiltro(verHistorial) {
+            document.getElementById('btn-finca').className = verHistorial ? 'btn-filtro' : 'btn-filtro seleccionado';
+            document.getElementById('btn-historial').className = verHistorial ? 'btn-filtro seleccionado' : 'btn-filtro';
+            window.cargarInventario(verHistorial); // Llamamos a la función de app.js
+        }
+    </script>
 </body>
 </html>
