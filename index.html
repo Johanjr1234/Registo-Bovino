@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐄 Registro Ganadero Digital</title>
+    <style>
+        /* (Estilos CSS básicos omitidos para brevedad, pero puedes copiarlos del mensaje anterior) */
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h2 { color: #2e7d32; text-align: center; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 20px; }
+        button:hover { background-color: #45a049; }
+        .success { color: green; text-align: center; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Registro de Nuevo Animal 🐄</h2>
+        <form id="registroForm">
+            <label for="nombre">Nombre / Número de Arete:</label>
+            <input type="text" id="nombre" required placeholder="Ej: Lola / 0015">
+
+            <label for="foto">Foto del Animal:</label>
+            <input type="file" id="foto" accept="image/*">
+
+            <label for="fechaNacimiento">Fecha de Nacimiento:</label>
+            <input type="date" id="fechaNacimiento" required>
+
+            <label for="sexo">Sexo:</label>
+            <select id="sexo" required>
+                <option value="">Seleccione...</option>
+                <option value="H">Hembra (Vaca)</option>
+                <option value="M">Macho (Toro/Novillo)</option>
+            </select>
+
+            <label for="raza">Raza:</label>
+            <input type="text" id="raza" placeholder="Ej: Gyr, Jersey, Cruce...">
+
+            <label for="idMadre">ID / Número de la Madre (Opcional):</label>
+            <input type="text" id="idMadre" placeholder="Si es cría, ingrese el ID de la madre">
+
+            <label for="estado">Estado Inicial:</label>
+            <select id="estado" required>
+                <option value="ACTIVO">Activo (En Finca)</option>
+                <option value="COMPRADO">Comprado</option>
+            </select>
+
+            <label for="precioCompra">Precio de Compra (si aplica):</label>
+            <input type="number" id="precioCompra" value="0" min="0">
+
+            <button type="submit">💾 Registrar Animal</button>
+            <p id="mensaje" class="success"></p>
+        </form>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
