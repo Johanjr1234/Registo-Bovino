@@ -4,55 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario Ganadero</title>
+    <!-- Importamos la librería para Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; max-width: 800px; margin: auto; }
         
-        /* NAV & FILTROS */
+        /* NAV SUPERIOR */
         .nav-menu { display: flex; gap: 10px; margin-bottom: 15px; }
         .nav-btn { flex: 1; padding: 12px; text-align: center; background: #fff; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; text-decoration: none; }
         .nav-btn.active { background: #2e7d32; color: white; border: none; }
 
+        /* NUEVO: PANEL FINANCIERO */
+        .balance-section { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .balance-titulo { text-align: center; color: #333; margin-top: 0; font-size: 1.1em; }
+        
+        .kpi-container { display: flex; gap: 10px; margin-bottom: 15px; }
+        .kpi-card { flex: 1; padding: 10px; border-radius: 8px; text-align: center; color: white; }
+        .kpi-compras { background-color: #d32f2f; } /* Rojo para gastos */
+        .kpi-ventas { background-color: #2e7d32; } /* Verde para ingresos */
+        
+        .kpi-valor { display: block; font-size: 1.2em; font-weight: bold; margin-top: 5px; }
+        .kpi-label { font-size: 0.8em; opacity: 0.9; }
+
+        .grafico-container { position: relative; height: 200px; width: 100%; }
+
+        /* FILTROS */
         .filtros { display: flex; gap: 5px; margin-bottom: 15px; background: #e0e0e0; padding: 5px; border-radius: 8px; }
         .btn-filtro { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #666; border-radius: 5px; }
         .btn-filtro.seleccionado { background: white; color: #2e7d32; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* TARJETA MADRE */
-        .animal-card { border: 1px solid #ddd; padding: 10px; margin-bottom: 15px; border-radius: 10px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        /* TARJETAS ANIMALES */
+        .animal-card { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 10px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .animal-header { display: flex; align-items: center; cursor: pointer; gap: 12px; }
-        
-        /* FOTOS */
         .cow-thumb { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; border: 2px solid #2e7d32; }
         .no-thumb { width: 55px; height: 55px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid #ddd; }
-        
-        /* INFO TEXTO */
         .info-resumen { flex: 1; }
         .nombre-animal { font-weight: 800; font-size: 1.1em; color: #333; display: block; }
         .raza-animal { font-size: 0.9em; color: #666; }
-        .age-badge { background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; white-space: nowrap; }
-        .sold-badge { background-color: #d32f2f; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; }
-
+        .age-badge, .sold-badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; color: white; }
+        .age-badge { background-color: #f0ad4e; }
+        .sold-badge { background-color: #d32f2f; }
+        
         .animal-details { display: none; padding-top: 15px; border-top: 1px dashed #eee; margin-top: 10px; }
         .foto-grande { max-width: 100%; border-radius: 8px; margin: 10px auto; display: block; }
-        
-        /* --- ESTILOS NUEVOS PARA CRÍAS --- */
+
+        /* ÁRBOL Y BOTONES */
         .offspring-container { background-color: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 8px; padding: 10px; margin-top: 10px; }
-        .offspring-title { font-size: 0.9em; font-weight: bold; color: #33691e; margin-bottom: 8px; display: block; }
-        
         .mini-cria-card { background: white; border-radius: 6px; border: 1px solid #dcedc8; margin-bottom: 8px; overflow: hidden; }
         .mini-header { display: flex; align-items: center; gap: 10px; padding: 8px; cursor: pointer; }
         .mini-thumb { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #ccc; }
-        .mini-info { flex: 1; font-size: 0.9em; }
-        .mini-actions { display: none; padding: 8px; background: #f9f9f9; border-top: 1px solid #eee; display: flex; gap: 5px; } /* Oculto por defecto */
+        .mini-actions { display: none; padding: 8px; background: #f9f9f9; border-top: 1px solid #eee; display: flex; gap: 5px; }
         
-        /* BOTONES */
         .acciones { display: flex; gap: 10px; margin-top: 15px; }
-        .btn-accion { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 0.9em; }
-        .btn-mini { flex: 1; padding: 6px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 0.8em; }
-
+        .btn-accion, .btn-mini { border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-accion { flex: 1; padding: 10px; font-size: 0.9em; }
+        .btn-mini { flex: 1; padding: 6px; font-size: 0.8em; }
         .btn-vender { background-color: #f57f17; }
         .btn-editar { background-color: #1976d2; }
         .btn-eliminar { background-color: #d32f2f; }
-
     </style>
 </head>
 <body>
@@ -60,6 +70,24 @@
         <a href="index.html" class="nav-btn">📝 Registro</a>
         <a href="inventario.html" class="nav-btn active">📋 Inventario</a>
     </nav>
+
+    <!-- NUEVO: SECCIÓN DE FINANZAS -->
+    <div class="balance-section">
+        <h3 class="balance-titulo">📊 Balance General</h3>
+        <div class="kpi-container">
+            <div class="kpi-card kpi-compras">
+                <span class="kpi-label">Total Invertido (Compras)</span>
+                <span id="total-compras" class="kpi-valor">$0</span>
+            </div>
+            <div class="kpi-card kpi-ventas">
+                <span class="kpi-label">Total Ventas</span>
+                <span id="total-ventas" class="kpi-valor">$0</span>
+            </div>
+        </div>
+        <div class="grafico-container">
+            <canvas id="balanceChart"></canvas>
+        </div>
+    </div>
 
     <div class="filtros">
         <button id="btn-finca" class="btn-filtro seleccionado" onclick="cambiarFiltro(false)">🐮 En Finca</button>
