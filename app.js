@@ -17,7 +17,6 @@ window.venderAnimal = async (id, nombre) => {
     }
 };
 
-// NUEVO: DESHACER VENTA
 window.restaurarAnimal = async (id, nombre) => {
     if (confirm(`🔄 ¿Restaurar a ${nombre} al inventario activo?\n(Se borrará el precio de venta)`)) {
         try { await updateDoc(doc(db, "animales", id), { estado: "ACTIVO", precioVenta: 0, fechaSalida: null }); alert("✅ Restaurado."); window.filtrarInventario('HISTORIAL'); } catch (e) { alert(e.message); }
@@ -30,7 +29,7 @@ window.eliminarAnimal = async (id, nombre) => {
     }
 };
 
-// NUEVO: CAMBIAR ESTADO PRODUCTIVO (Desde la lista)
+// CAMBIAR ESTADO PRODUCTIVO (Sirve para madres e hijos)
 window.cambiarEstado = async (id, nuevoEstado) => {
     try { await updateDoc(doc(db, "animales", id), { estadoProductivo: nuevoEstado }); alert("✅ Estado actualizado a " + nuevoEstado); } catch (e) { alert("Error al cambiar estado"); }
 };
@@ -74,9 +73,9 @@ function actualizarFinanzas(data) {
     }
 }
 
-// --- REGISTRO (CON BUSCADOR) ---
+// --- REGISTRO ---
 const form = document.getElementById('registroForm');
-const listaMadres = document.getElementById('listaMadres'); // El datalist
+const listaMadres = document.getElementById('listaMadres');
 
 async function cargarMadres() {
     if (!listaMadres) return;
@@ -87,8 +86,8 @@ async function cargarMadres() {
             const a = doc.data();
             if (a.estado !== "VENDIDO" && a.sexo === 'H') {
                 const op = document.createElement('option');
-                op.value = a.nombre; // Lo que se inserta
-                op.textContent = `(${a.raza})`; // Texto ayuda
+                op.value = a.nombre; 
+                op.textContent = `(${a.raza})`;
                 listaMadres.appendChild(op);
             }
         });
@@ -105,8 +104,6 @@ if (form) {
             const filePadre = document.getElementById('fotoPadre') ? document.getElementById('fotoPadre').files[0] : null; 
             let url = file ? await subirFotoAImgBB(file) : '';
             let urlPadre = filePadre ? await subirFotoAImgBB(filePadre) : '';
-
-            // Obtener valor del INPUT (Buscador)
             const madreVal = document.getElementById('inputMadre').value.toUpperCase();
 
             await addDoc(collection(db, 'animales'), {
@@ -114,7 +111,7 @@ if (form) {
                 fechaNacimiento: document.getElementById('fechaNacimiento').value || null,
                 sexo: document.getElementById('sexo').value,
                 raza: document.getElementById('raza').value,
-                estadoProductivo: document.getElementById('estadoProductivo').value, // NUEVO CAMPO
+                estadoProductivo: document.getElementById('estadoProductivo').value,
                 idMadre: madreVal || null,
                 nombrePadre: document.getElementById('nombrePadre').value.toUpperCase() || null,
                 fotoPadreURL: urlPadre,
@@ -129,14 +126,12 @@ if (form) {
     });
 }
 
-// --- INVENTARIO (CON FILTROS Y ESTADOS) ---
+// --- INVENTARIO (LÓGICA MEJORADA PARA CRÍAS) ---
 const listado = document.getElementById('inventario-listado');
-let animalesCache = []; // Guardamos los datos para no recargar al filtrar
+let animalesCache = [];
 
 window.filtrarInventario = async (filtro = 'TODOS') => {
     if (!listado) return;
-    
-    // Si no tenemos datos en cache, cargamos de Firebase
     if (animalesCache.length === 0) {
         listado.innerHTML = '<p style="text-align: center;">Cargando...</p>';
         const snap = await getDocs(collection(db, "animales"));
@@ -144,36 +139,33 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
         actualizarFinanzas(animalesCache);
     }
 
-    // LÓGICA DE FILTRADO
     const esHistorial = (filtro === 'HISTORIAL');
-    
     const listaFiltrada = animalesCache.filter(a => {
         if (esHistorial) return a.estado === "VENDIDO";
-        
-        // Si no es historial, debe estar ACTIVO
         if (a.estado === "VENDIDO") return false;
-
-        // Filtros específicos
         if (filtro === 'TODOS') return true;
-        
-        // Si el animal no tiene estadoProductivo (viejo), lo mostramos en TODOS pero no en filtros específicos
-        // Opcional: Asumir 'HORRA' por defecto si no tiene.
-        const estadoProd = a.estadoProductivo || 'SIN_ASIGNAR'; 
-        return estadoProd === filtro;
+        return (a.estadoProductivo || 'SIN_ASIGNAR') === filtro;
     });
 
     if (listaFiltrada.length === 0) { listado.innerHTML = `<p style="text-align: center; margin-top:20px;">No hay animales en esta categoría.</p>`; return; }
 
-    // Renderizar
+    // Mapa de hijos
     const mapaHijos = {};
-    listaFiltrada.forEach(a => { if (a.idMadre) { if (!mapaHijos[a.idMadre]) mapaHijos[a.idMadre] = []; mapaHijos[a.idMadre].push(a); } });
+    // Mapa para buscar fotos rápido por nombre
+    const mapaFotos = {}; 
+    animalesCache.forEach(a => { 
+        mapaFotos[a.nombre] = a.fotoURL; // Guardamos foto por nombre
+        if (a.idMadre) { 
+            if (!mapaHijos[a.idMadre]) mapaHijos[a.idMadre] = []; 
+            mapaHijos[a.idMadre].push(a); 
+        } 
+    });
 
     listado.innerHTML = '';
     const presentes = listaFiltrada.map(a => a.nombre);
     const fb = "https://cdn-icons-png.flaticon.com/512/1998/1998610.png";
 
     listaFiltrada.forEach(animal => {
-        // Árbol: Si la madre está en la lista visible, no mostrar al hijo suelto
         if (!esHistorial && animal.idMadre && presentes.includes(animal.idMadre)) return; 
         
         const edad = calcularEdad(animal.fechaNacimiento);
@@ -181,19 +173,16 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
         const foto = animal.fotoURL || fb;
         const estProd = animal.estadoProductivo || 'SIN_ASIGNAR';
 
-        // SELECTOR DE ESTADO (Para cambiar rápido)
-        let selectorEstado = '';
-        if (!esHistorial) {
-            selectorEstado = `
-            <select class="estado-selector" onchange="window.cambiarEstado('${animal.id}', this.value)">
-                <option value="ORDEÑO" ${estProd==='ORDEÑO'?'selected':''}>🥛 En Ordeño</option>
-                <option value="HORRA" ${estProd==='HORRA'?'selected':''}>🏖️ Horra</option>
-                <option value="CRIA" ${estProd==='CRIA'?'selected':''}>🌱 Cría</option>
-                <option value="LEVANTE" ${estProd==='LEVANTE'?'selected':''}>🌾 Levante</option>
-                <option value="TORO" ${estProd==='TORO'?'selected':''}>🐂 Toro</option>
-                <option value="CEBA" ${estProd==='CEBA'?'selected':''}>🥩 Ceba</option>
+        // SELECTOR DE ESTADO (Generador)
+        const getSelector = (id, estadoActual) => `
+            <select class="estado-selector" onchange="window.cambiarEstado('${id}', this.value)" onclick="event.stopPropagation()">
+                <option value="CRIA" ${estadoActual==='CRIA'?'selected':''}>🌱 Cría</option>
+                <option value="LEVANTE" ${estadoActual==='LEVANTE'?'selected':''}>🌾 Levante</option>
+                <option value="TORO" ${estadoActual==='TORO'?'selected':''}>🐂 Toro</option>
+                <option value="CEBA" ${estadoActual==='CEBA'?'selected':''}>🥩 Ceba</option>
+                <option value="ORDEÑO" ${estadoActual==='ORDEÑO'?'selected':''}>🥛 En Ordeño</option>
+                <option value="HORRA" ${estadoActual==='HORRA'?'selected':''}>🏖️ Horra</option>
             </select>`;
-        }
 
         // Utilidad (Historial)
         let utilidadHTML = '';
@@ -204,15 +193,52 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
             utilidadHTML = `<div class="${color} profit-badge">${txt}: ${formatCOP(u)}</div>`;
         }
 
-        // Hijos
+        // --- CRÍAS SUPER-MEJORADAS ---
         let hijosHTML = '';
         if (hijos.length > 0) {
             hijosHTML = `<div class="offspring-container"><span class="offspring-title">🧬 Descendencia (${hijos.length})</span>${hijos.map(h => {
-                const hFoto = h.fotoURL || fb; const hEdad = calcularEdad(h.fechaNacimiento);
-                return `<div class="cria-full-card"><div class="cria-header" onclick="window.toggleChildDetails('${h.id}')"><span class="cria-nombre">${h.nombre} (${h.sexo})</span><span class="age-badge">${hEdad}</span></div><div class="cria-body"><img src="${hFoto}" class="foto-preview" onclick="window.openModal('${hFoto}')"><div class="datos-texto"><p style="margin:0"><strong>Estado:</strong> ${h.estadoProductivo||'N/A'}</p><p style="margin:0"><strong>Padre:</strong> ${h.nombrePadre||'N/A'}</p></div></div><div id="child-det-${h.id}" class="mini-actions"><button class="btn-accion btn-editar" onclick="window.editarAnimal('${h.id}', '${h.nombre}', '${h.raza}')">✏️</button><button class="btn-accion btn-vender" onclick="window.venderAnimal('${h.id}', '${h.nombre}')">💰</button><button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${h.id}', '${h.nombre}')">🗑️</button></div></div>`;
+                const hFoto = h.fotoURL || fb; 
+                const hEdad = calcularEdad(h.fechaNacimiento);
+                const hEstProd = h.estadoProductivo || 'CRIA'; // Por defecto CRIA si no tiene
+                
+                // Buscar fotos de padres
+                const mamaFoto = mapaFotos[h.idMadre] || fb; // Busca la foto de la mamá en el mapa
+                const papaFoto = h.fotoPadreURL || fb; // Foto padre externo
+                const papaNombre = h.nombrePadre || 'N/A';
+                
+                return `
+                <div class="cria-full-card">
+                    <div class="cria-header" onclick="window.toggleChildDetails('${h.id}')">
+                        <span class="cria-nombre">${h.nombre} (${h.sexo})</span>
+                        <span class="age-badge">${hEdad}</span>
+                    </div>
+                    <div class="cria-body">
+                        <img src="${hFoto}" class="foto-preview" onclick="window.openModal('${hFoto}')">
+                        <div class="datos-texto" style="flex:1;">
+                            ${!esHistorial ? getSelector(h.id, hEstProd) : ''}
+                            
+                            <div class="padres-grid" style="margin-top:10px;">
+                                <div class="padre-item" style="flex-direction:column; align-items:center; text-align:center;">
+                                    <img src="${mamaFoto}" class="padre-thumb" onclick="window.openModal('${mamaFoto}')" style="width:40px;height:40px;">
+                                    <span style="font-size:0.7em;">M: ${h.idMadre}</span>
+                                </div>
+                                <div class="padre-item" style="flex-direction:column; align-items:center; text-align:center;">
+                                    <img src="${papaFoto}" class="padre-thumb" onclick="window.openModal('${papaFoto}')" style="width:40px;height:40px;">
+                                    <span style="font-size:0.7em;">P: ${papaNombre}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="child-det-${h.id}" class="mini-actions">
+                        <button class="btn-accion btn-editar" onclick="window.editarAnimal('${h.id}', '${h.nombre}', '${h.raza}')">✏️</button>
+                        <button class="btn-accion btn-vender" onclick="window.venderAnimal('${h.id}', '${h.nombre}')">💰</button>
+                        <button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${h.id}', '${h.nombre}')">🗑️</button>
+                    </div>
+                </div>`;
             }).join('')}</div>`;
         }
 
+        // --- TARJETA MADRE PRINCIPAL ---
         listado.innerHTML += `
             <div class="animal-card">
                 <div class="animal-header" onclick="window.toggleDetails('${animal.id}')">
@@ -229,7 +255,7 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
                     <div class="info-con-foto">
                         ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-preview" onclick="window.openModal('${animal.fotoURL}')">` : ''}
                         <div class="datos-texto">
-                            ${selectorEstado}
+                            ${!esHistorial ? getSelector(animal.id, estProd) : ''}
                             ${animal.nombrePadre ? `<p><strong>Padre:</strong> ${animal.nombrePadre}</p>` : ''}
                             <p><strong>Compra:</strong> ${formatCOP(animal.precioCompra)}</p>
                             ${esHistorial ? `<p><strong>Venta:</strong> ${formatCOP(animal.precioVenta)}</p>` : ''}
@@ -253,5 +279,4 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
     });
 };
 
-// Cargar por defecto TODOS
 if (listado) window.filtrarInventario('TODOS');
