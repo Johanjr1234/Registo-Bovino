@@ -17,12 +17,14 @@
 
         /* FORMULARIO */
         label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
-        input, select, button { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
         
-        /* Estilo especial para los select de padres */
-        select.select-padres { border: 2px solid #a5d6a7; background-color: #f1f8e9; }
+        /* SECCIÓN PADRES */
+        .padres-section { background-color: #f1f8e9; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #c5e1a5; }
+        .padres-title { color: #33691e; margin-top: 0; font-size: 1em; border-bottom: 1px solid #a5d6a7; padding-bottom: 5px; margin-bottom: 10px; }
+        .sub-label { font-size: 0.9em; color: #558b2f; margin-top: 10px; }
 
-        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 25px; font-size: 1.1em; font-weight: bold; border: none; }
+        button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 25px; font-size: 1.1em; font-weight: bold; border: none; width: 100%; padding: 12px; border-radius: 6px; }
         button:hover { background-color: #45a049; }
         .success { color: green; text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
@@ -40,7 +42,7 @@
             <label for="nombre">Nombre / Número de Arete:</label>
             <input type="text" id="nombre" required placeholder="Ej: Lola / 0015">
 
-            <label for="foto">Foto del Animal:</label>
+            <label for="foto">Foto del Animal (Principal):</label>
             <input type="file" id="foto" accept="image/*">
 
             <label for="fechaNacimiento">Fecha de Nacimiento (Opcional):</label>
@@ -56,15 +58,20 @@
             <label for="raza">Raza:</label>
             <input type="text" id="raza" placeholder="Ej: Gyr, Jersey, Cruce...">
 
-            <label for="idMadre">Asignar Madre (Vacas registradas):</label>
-            <select id="idMadre" class="select-padres">
-                <option value="">Cargando lista...</option>
-            </select>
+            <div class="padres-section">
+                <h3 class="padres-title">🧬 Genealogía (Opcional)</h3>
+                
+                <label class="sub-label">Madre (Seleccionar del Inventario):</label>
+                <select id="idMadre">
+                    <option value="">-- Ninguna --</option>
+                </select>
 
-            <label for="idPadre">Asignar Padre (Toros registrados):</label>
-            <select id="idPadre" class="select-padres">
-                <option value="">Cargando lista...</option>
-            </select>
+                <label class="sub-label">Nombre del Padre (Manual):</label>
+                <input type="text" id="nombrePadre" placeholder="Ej: Toro Sansón (Externo)">
+                
+                <label class="sub-label">Foto del Padre:</label>
+                <input type="file" id="fotoPadre" accept="image/*">
+            </div>
 
             <label for="estado">Estado Inicial:</label>
             <select id="estado" required>
