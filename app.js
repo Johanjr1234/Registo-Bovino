@@ -2,9 +2,9 @@
 import { db, IMGBB_API_KEY } from './firebase-config.js'; 
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// --- GESTIÓN DE INTERFAZ ---
+// --- UI HELPERS ---
 window.toggleDetails = (id) => { const el = document.getElementById(`details-${id}`); if(el) el.style.display = (el.style.display==='block')?'none':'block'; };
-window.toggleChildActions = (id) => { const el = document.getElementById(`child-actions-${id}`); if(el) el.style.display = (el.style.display==='flex')?'none':'flex'; };
+window.toggleChildDetails = (id) => { const el = document.getElementById(`child-det-${id}`); if(el) el.style.display = (el.style.display==='block')?'none':'block'; };
 
 // --- ACCIONES ---
 window.venderAnimal = async (id, nombre) => {
@@ -18,13 +18,11 @@ window.venderAnimal = async (id, nombre) => {
         } catch (e) { alert("Error: " + e.message); }
     }
 };
-
 window.eliminarAnimal = async (id, nombre) => {
     if (confirm(`⚠️ ¿ELIMINAR DEFINITIVAMENTE a ${nombre}?`)) {
         try { await deleteDoc(doc(db, "animales", id)); alert("🗑️ Eliminado."); window.cargarInventario(false); } catch (e) { alert("Error: " + e.message); }
     }
 };
-
 window.editarAnimal = async (id, nombre, raza) => {
     const n = prompt("Nombre:", nombre); if(!n) return;
     const r = prompt("Raza:", raza); if(!r) return;
@@ -49,108 +47,96 @@ function calcularEdad(dateString) {
 }
 function formatCOP(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v); }
 
-// --- FINANZAS AVANZADAS (3 BARRAS) ---
+// --- FINANZAS ---
 let myChart = null;
 function actualizarFinanzas(data) {
-    let totalGastado = 0; // Todo lo que ha salido
-    let totalVentas = 0;  // Todo lo que ha entrado
-    let totalActivos = 0; // Valor del ganado actual
-
+    let tG=0, tV=0, tA=0;
     data.forEach(a => {
-        const compra = parseFloat(a.precioCompra) || 0;
-        const venta = parseFloat(a.precioVenta) || 0;
-        
-        // El gasto es histórico, siempre suma
-        totalGastado += compra;
-
-        if (a.estado === "VENDIDO") {
-            totalVentas += venta;
-        } else {
-            // Si está activo, suma al valor del inventario vivo
-            totalActivos += compra;
-        }
+        const c = parseFloat(a.precioCompra)||0; const v = parseFloat(a.precioVenta)||0;
+        tG += c;
+        if(a.estado==="VENDIDO") tV+=v; else tA+=c;
     });
-
-    document.getElementById('total-compras').innerText = formatCOP(totalGastado);
-    document.getElementById('total-activos').innerText = formatCOP(totalActivos);
-    document.getElementById('total-ventas').innerText = formatCOP(totalVentas);
+    document.getElementById('total-compras').innerText = formatCOP(tG);
+    document.getElementById('total-activos').innerText = formatCOP(tA);
+    document.getElementById('total-ventas').innerText = formatCOP(tV);
 
     const ctx = document.getElementById('balanceChart');
     if (ctx) {
         if (myChart) myChart.destroy();
-        myChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ['Gastos Históricos', 'Valor en Finca', 'Ventas Totales'],
-                datasets: [{
-                    label: 'COP',
-                    data: [totalGastado, totalActivos, totalVentas],
-                    backgroundColor: ['#d32f2f', '#1976d2', '#2e7d32'],
-                    borderWidth: 1
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
+        myChart = new Chart(ctx, { type: 'bar', data: { labels: ['Gastos', 'Activos', 'Ventas'], datasets: [{ label: 'COP', data: [tG, tA, tV], backgroundColor: ['#d32f2f', '#1976d2', '#2e7d32'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
 }
 
-// --- REGISTRO ---
+// --- REGISTRO (MODIFICADO: PADRE Y DOBLE FOTO) ---
 const form = document.getElementById('registroForm');
 const selectMadre = document.getElementById('idMadre');
-const selectPadre = document.getElementById('idPadre');
 
-async function cargarOpcionesPadres() {
+async function cargarMadres() {
     if (!selectMadre) return;
     try {
         const snap = await getDocs(collection(db, "animales"));
         selectMadre.innerHTML = '<option value="">-- Ninguna --</option>';
-        selectPadre.innerHTML = '<option value="">-- Ninguno --</option>';
         snap.forEach(doc => {
             const a = doc.data();
-            if (a.estado === "VENDIDO") return;
-            const op = document.createElement('option'); op.value = a.nombre; op.textContent = `${a.nombre} (${a.raza})`;
-            if (a.sexo === 'H') selectMadre.appendChild(op);
-            if (a.sexo === 'M') selectPadre.appendChild(op);
+            // Solo cargamos hembras vivas como madres
+            if (a.estado !== "VENDIDO" && a.sexo === 'H') {
+                const op = document.createElement('option');
+                op.value = a.nombre; op.textContent = `${a.nombre} (${a.raza})`;
+                selectMadre.appendChild(op);
+            }
         });
     } catch (e) { console.error(e); }
 }
 
 if (form) {
-    cargarOpcionesPadres();
+    cargarMadres();
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const msg = document.getElementById('mensaje'); msg.textContent = 'Guardando...';
+        const msg = document.getElementById('mensaje');
+        msg.textContent = 'Subiendo fotos y guardando... (Paciencia)';
+        
         try {
             const file = document.getElementById('foto').files[0];
+            const filePadre = document.getElementById('fotoPadre') ? document.getElementById('fotoPadre').files[0] : null; // Foto padre opcional
+            
+            // Subimos las fotos si existen (en paralelo es arriesgado en móvil, mejor secuencial)
             let url = file ? await subirFotoAImgBB(file) : '';
+            let urlPadre = filePadre ? await subirFotoAImgBB(filePadre) : '';
+
             await addDoc(collection(db, 'animales'), {
                 nombre: document.getElementById('nombre').value.toUpperCase(),
                 fechaNacimiento: document.getElementById('fechaNacimiento').value || null,
                 sexo: document.getElementById('sexo').value,
                 raza: document.getElementById('raza').value,
                 idMadre: document.getElementById('idMadre').value || null,
-                idPadre: document.getElementById('idPadre').value || null,
+                
+                // CAMBIO: Ahora guardamos nombre y foto del padre directos
+                nombrePadre: document.getElementById('nombrePadre').value.toUpperCase() || null,
+                fotoPadreURL: urlPadre, // Link a la foto del padre
+                
                 estado: document.getElementById('estado').value,
                 precioCompra: parseFloat(document.getElementById('precioCompra').value) || 0,
                 precioVenta: 0,
                 fotoURL: url,
                 timestamp: serverTimestamp()
             });
-            msg.textContent = '✅ Guardado!'; msg.style.color = 'green'; form.reset(); cargarOpcionesPadres();
+            msg.textContent = '✅ Guardado!'; msg.style.color = 'green';
+            form.reset(); cargarMadres();
         } catch (e) { msg.textContent = '❌ Error: ' + e.message; msg.style.color = 'red'; }
     });
 }
 
-// --- INVENTARIO ---
+// --- INVENTARIO (MODIFICADO: SUPER-CRÍA) ---
 const listado = document.getElementById('inventario-listado');
 window.cargarInventario = async (verHistorial = false) => {
     if (!listado) return;
     listado.innerHTML = '<p style="text-align: center;">Cargando...</p>';
+    
     try {
         const snap = await getDocs(collection(db, "animales"));
         const data = []; snap.forEach(d => data.push({ id: d.id, ...d.data() }));
 
-        actualizarFinanzas(data); // Actualizar gráfico
+        actualizarFinanzas(data);
 
         const listaFiltrada = data.filter(a => verHistorial ? (a.estado === "VENDIDO") : (a.estado !== "VENDIDO"));
         if (listaFiltrada.length === 0) { listado.innerHTML = `<p style="text-align: center; margin-top:20px;">${verHistorial ? 'Sin ventas.' : 'Corral vacío.'}</p>`; return; }
@@ -164,34 +150,64 @@ window.cargarInventario = async (verHistorial = false) => {
 
         listaFiltrada.forEach(animal => {
             if (!verHistorial && animal.idMadre && presentes.includes(animal.idMadre)) return; 
+            
             const edad = calcularEdad(animal.fechaNacimiento);
             const hijos = mapaHijos[animal.nombre] || [];
             const foto = animal.fotoURL || fb;
 
-            // Lógica de Utilidad INDIVIDUAL
+            // --- RENDERIZADO DE UTILIDAD ---
             let utilidadHTML = '';
             if (verHistorial) {
-                const compra = parseFloat(animal.precioCompra) || 0;
-                const venta = parseFloat(animal.precioVenta) || 0;
-                const utilidad = venta - compra;
-                const esGanancia = utilidad >= 0;
-                // Si la venta es 0, asumimos muerte/pérdida total
-                const textoUtilidad = (venta === 0) ? "PERDIDA (MUERTE)" : (esGanancia ? "GANANCIA" : "PÉRDIDA");
-                const claseUtilidad = (venta === 0 || !esGanancia) ? "profit-negative" : "profit-positive";
-                const icono = (venta === 0 || !esGanancia) ? "📉" : "📈";
-                
-                utilidadHTML = `
-                <div class="${claseUtilidad} profit-badge">
-                    ${icono} ${textoUtilidad}: ${formatCOP(utilidad)}
-                </div>`;
+                const u = (parseFloat(animal.precioVenta)||0) - (parseFloat(animal.precioCompra)||0);
+                const color = (parseFloat(animal.precioVenta)===0 || u<0) ? 'profit-negative' : 'profit-positive';
+                const txt = (parseFloat(animal.precioVenta)===0) ? 'PERDIDA/MUERTE' : (u>=0?'GANANCIA':'PÉRDIDA');
+                utilidadHTML = `<div class="${color} profit-badge">${txt}: ${formatCOP(u)}</div>`;
             }
 
-            // Hijos HTML
+            // --- SUPER-CRÍA (Propuesta 3) ---
             let hijosHTML = '';
             if (hijos.length > 0) {
-                hijosHTML = `<div class="offspring-container"><span class="offspring-title">🧬 Descendencia (${hijos.length})</span>${hijos.map(h => {
-                    return `<div class="mini-cria-card"><div class="mini-header" onclick="event.stopPropagation(); window.toggleChildActions('${h.id}')"><img src="${h.fotoURL||fb}" class="mini-thumb" onerror="this.src='${fb}'"><div class="mini-info"><strong>${h.nombre} (${h.sexo})</strong><br><span style="color:#2e7d32;">${calcularEdad(h.fechaNacimiento)}</span></div></div><div id="child-actions-${h.id}" class="mini-actions"><button class="btn-mini btn-editar" onclick="window.editarAnimal('${h.id}', '${h.nombre}', '${h.raza}')">✏️</button><button class="btn-mini btn-vender" onclick="window.venderAnimal('${h.id}', '${h.nombre}')">💰</button><button class="btn-mini btn-eliminar" onclick="window.eliminarAnimal('${h.id}', '${h.nombre}')">🗑️</button></div></div>`;
-                }).join('')}</div>`;
+                hijosHTML = `<div class="offspring-container">
+                    <span class="offspring-title">🧬 Descendencia (${hijos.length})</span>
+                    ${hijos.map(h => {
+                        const hEdad = calcularEdad(h.fechaNacimiento);
+                        const hFoto = h.fotoURL || fb;
+                        const hFecha = h.fechaNacimiento || '--';
+                        // Fotos de padres (Madre = animal actual, Padre = h.fotoPadreURL)
+                        const mamaFoto = animal.fotoURL || fb;
+                        const papaFoto = h.fotoPadreURL || fb;
+                        const papaNombre = h.nombrePadre || 'No registrado';
+                        
+                        // Tarjeta GRANDE de la cría
+                        return `
+                        <div class="cria-full-card">
+                            <div class="cria-header" onclick="window.toggleChildDetails('${h.id}')">
+                                <span class="cria-nombre">${h.nombre} (${h.sexo})</span>
+                                <span class="age-badge">${hEdad}</span>
+                            </div>
+                            <img src="${hFoto}" class="foto-optimizada" onerror="this.src='${fb}'">
+                            
+                            <p style="font-size:0.9em; margin:5px 0;"><strong>Nacimiento:</strong> ${hFecha}</p>
+                            
+                            <div class="padres-grid">
+                                <div class="padre-item">
+                                    <img src="${mamaFoto}" class="padre-thumb">
+                                    <span>Madre: ${animal.nombre}</span>
+                                </div>
+                                <div class="padre-item">
+                                    <img src="${papaFoto}" class="padre-thumb">
+                                    <span>Padre: ${papaNombre}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="acciones">
+                                <button class="btn-accion btn-editar" onclick="window.editarAnimal('${h.id}', '${h.nombre}', '${h.raza}')">✏️</button>
+                                <button class="btn-accion btn-vender" onclick="window.venderAnimal('${h.id}', '${h.nombre}')">💰</button>
+                                <button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${h.id}', '${h.nombre}')">🗑️</button>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>`;
             }
 
             listado.innerHTML += `
@@ -207,14 +223,16 @@ window.cargarInventario = async (verHistorial = false) => {
 
                     <div id="details-${animal.id}" class="animal-details">
                         <p><strong>Sexo:</strong> ${animal.sexo === 'H' ? 'Hembra' : 'Macho'}</p>
-                        ${animal.idPadre ? `<p><strong>Padre:</strong> ${animal.idPadre}</p>` : ''}
+                        ${animal.nombrePadre ? `<p><strong>Padre:</strong> ${animal.nombrePadre}</p>` : ''}
                         
                         <p><strong>Compra:</strong> ${formatCOP(animal.precioCompra)}</p>
                         ${verHistorial ? `<p><strong>Venta:</strong> ${formatCOP(animal.precioVenta)}</p>` : ''}
                         ${utilidadHTML}
                         
                         <p><strong>Nacimiento:</strong> ${animal.fechaNacimiento || '--'}</p>
-                        ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-grande">` : ''}
+                        
+                        ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-optimizada">` : ''}
+
                         ${hijosHTML}
                         
                         <div class="acciones">
@@ -230,4 +248,5 @@ window.cargarInventario = async (verHistorial = false) => {
         });
     } catch (e) { listado.innerHTML = `<p style="color:red">Error: ${e.message}</p>`; }
 };
-if (listado) window.cargarInventario(false);         
+
+if (listado) window.cargarInventario(false);
