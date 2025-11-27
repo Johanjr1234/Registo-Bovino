@@ -2,11 +2,21 @@
 import { db, IMGBB_API_KEY } from './firebase-config.js'; 
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// --- UI HELPERS ---
+// --- 1. GESTIÓN DE INTERFAZ & ZOOM ---
 window.toggleDetails = (id) => { const el = document.getElementById(`details-${id}`); if(el) el.style.display = (el.style.display==='block')?'none':'block'; };
 window.toggleChildDetails = (id) => { const el = document.getElementById(`child-det-${id}`); if(el) el.style.display = (el.style.display==='block')?'none':'block'; };
 
-// --- ACCIONES ---
+// FUNCIONES DE ZOOM (MODAL)
+window.openModal = (url) => {
+    if(!url || url.includes('flaticon')) return; // No abrir zoom si es el ícono por defecto
+    const modal = document.getElementById("imageModal");
+    const modalImg = document.getElementById("imgFull");
+    modal.style.display = "flex";
+    modalImg.src = url;
+};
+window.closeModal = () => { document.getElementById("imageModal").style.display = "none"; };
+
+// --- 2. ACCIONES ---
 window.venderAnimal = async (id, nombre) => {
     let precio = prompt(`¿Precio venta de ${nombre}? (0 si murió)`);
     if (precio === null) return;
@@ -29,14 +39,13 @@ window.editarAnimal = async (id, nombre, raza) => {
     try { await updateDoc(doc(db, "animales", id), { nombre: n.toUpperCase(), raza: r }); alert("✅ Actualizado."); window.cargarInventario(false); } catch (e) { alert("Error: " + e.message); }
 };
 
-// --- UTILIDADES ---
+// --- 3. UTILIDADES ---
 async function subirFotoAImgBB(file) {
     if (!IMGBB_API_KEY) throw new Error("Falta API Key");
     const fd = new FormData(); fd.append("image", file); fd.append("key", IMGBB_API_KEY);
     const res = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body: fd });
     const data = await res.json(); if (data.success) return data.data.url; throw new Error("Error foto");
 }
-
 function calcularEdad(dateString) {
     if (!dateString) return "--";
     const birth = new Date(dateString); const now = new Date();
@@ -47,14 +56,13 @@ function calcularEdad(dateString) {
 }
 function formatCOP(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v); }
 
-// --- FINANZAS ---
+// --- 4. FINANZAS ---
 let myChart = null;
 function actualizarFinanzas(data) {
     let tG=0, tV=0, tA=0;
     data.forEach(a => {
         const c = parseFloat(a.precioCompra)||0; const v = parseFloat(a.precioVenta)||0;
-        tG += c;
-        if(a.estado==="VENDIDO") tV+=v; else tA+=c;
+        tG += c; if(a.estado==="VENDIDO") tV+=v; else tA+=c;
     });
     document.getElementById('total-compras').innerText = formatCOP(tG);
     document.getElementById('total-activos').innerText = formatCOP(tA);
@@ -67,7 +75,7 @@ function actualizarFinanzas(data) {
     }
 }
 
-// --- REGISTRO (MODIFICADO: PADRE Y DOBLE FOTO) ---
+// --- 5. REGISTRO ---
 const form = document.getElementById('registroForm');
 const selectMadre = document.getElementById('idMadre');
 
@@ -78,7 +86,6 @@ async function cargarMadres() {
         selectMadre.innerHTML = '<option value="">-- Ninguna --</option>';
         snap.forEach(doc => {
             const a = doc.data();
-            // Solo cargamos hembras vivas como madres
             if (a.estado !== "VENDIDO" && a.sexo === 'H') {
                 const op = document.createElement('option');
                 op.value = a.nombre; op.textContent = `${a.nombre} (${a.raza})`;
@@ -92,14 +99,10 @@ if (form) {
     cargarMadres();
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const msg = document.getElementById('mensaje');
-        msg.textContent = 'Subiendo fotos y guardando... (Paciencia)';
-        
+        const msg = document.getElementById('mensaje'); msg.textContent = 'Subiendo fotos y guardando...';
         try {
             const file = document.getElementById('foto').files[0];
-            const filePadre = document.getElementById('fotoPadre') ? document.getElementById('fotoPadre').files[0] : null; // Foto padre opcional
-            
-            // Subimos las fotos si existen (en paralelo es arriesgado en móvil, mejor secuencial)
+            const filePadre = document.getElementById('fotoPadre') ? document.getElementById('fotoPadre').files[0] : null; 
             let url = file ? await subirFotoAImgBB(file) : '';
             let urlPadre = filePadre ? await subirFotoAImgBB(filePadre) : '';
 
@@ -109,24 +112,20 @@ if (form) {
                 sexo: document.getElementById('sexo').value,
                 raza: document.getElementById('raza').value,
                 idMadre: document.getElementById('idMadre').value || null,
-                
-                // CAMBIO: Ahora guardamos nombre y foto del padre directos
                 nombrePadre: document.getElementById('nombrePadre').value.toUpperCase() || null,
-                fotoPadreURL: urlPadre, // Link a la foto del padre
-                
+                fotoPadreURL: urlPadre,
                 estado: document.getElementById('estado').value,
                 precioCompra: parseFloat(document.getElementById('precioCompra').value) || 0,
                 precioVenta: 0,
                 fotoURL: url,
                 timestamp: serverTimestamp()
             });
-            msg.textContent = '✅ Guardado!'; msg.style.color = 'green';
-            form.reset(); cargarMadres();
+            msg.textContent = '✅ Guardado!'; msg.style.color = 'green'; form.reset(); cargarMadres();
         } catch (e) { msg.textContent = '❌ Error: ' + e.message; msg.style.color = 'red'; }
     });
 }
 
-// --- INVENTARIO (MODIFICADO: SUPER-CRÍA) ---
+// --- 6. INVENTARIO (CON ZOOM) ---
 const listado = document.getElementById('inventario-listado');
 window.cargarInventario = async (verHistorial = false) => {
     if (!listado) return;
@@ -155,7 +154,6 @@ window.cargarInventario = async (verHistorial = false) => {
             const hijos = mapaHijos[animal.nombre] || [];
             const foto = animal.fotoURL || fb;
 
-            // --- RENDERIZADO DE UTILIDAD ---
             let utilidadHTML = '';
             if (verHistorial) {
                 const u = (parseFloat(animal.precioVenta)||0) - (parseFloat(animal.precioCompra)||0);
@@ -164,7 +162,7 @@ window.cargarInventario = async (verHistorial = false) => {
                 utilidadHTML = `<div class="${color} profit-badge">${txt}: ${formatCOP(u)}</div>`;
             }
 
-            // --- SUPER-CRÍA (Propuesta 3) ---
+            // --- SUPER-CRÍA ---
             let hijosHTML = '';
             if (hijos.length > 0) {
                 hijosHTML = `<div class="offspring-container">
@@ -173,34 +171,33 @@ window.cargarInventario = async (verHistorial = false) => {
                         const hEdad = calcularEdad(h.fechaNacimiento);
                         const hFoto = h.fotoURL || fb;
                         const hFecha = h.fechaNacimiento || '--';
-                        // Fotos de padres (Madre = animal actual, Padre = h.fotoPadreURL)
                         const mamaFoto = animal.fotoURL || fb;
                         const papaFoto = h.fotoPadreURL || fb;
-                        const papaNombre = h.nombrePadre || 'No registrado';
+                        const papaNombre = h.nombrePadre || 'No reg.';
                         
-                        // Tarjeta GRANDE de la cría
                         return `
                         <div class="cria-full-card">
                             <div class="cria-header" onclick="window.toggleChildDetails('${h.id}')">
                                 <span class="cria-nombre">${h.nombre} (${h.sexo})</span>
                                 <span class="age-badge">${hEdad}</span>
                             </div>
-                            <img src="${hFoto}" class="foto-optimizada" onerror="this.src='${fb}'">
-                            
-                            <p style="font-size:0.9em; margin:5px 0;"><strong>Nacimiento:</strong> ${hFecha}</p>
-                            
-                            <div class="padres-grid">
-                                <div class="padre-item">
-                                    <img src="${mamaFoto}" class="padre-thumb">
-                                    <span>Madre: ${animal.nombre}</span>
-                                </div>
-                                <div class="padre-item">
-                                    <img src="${papaFoto}" class="padre-thumb">
-                                    <span>Padre: ${papaNombre}</span>
+                            <div class="cria-body">
+                                <img src="${hFoto}" class="foto-preview" onclick="window.openModal('${hFoto}')">
+                                <div class="datos-texto">
+                                    <p style="font-size:0.85em; margin:0;"><strong>Nacimiento:</strong> ${hFecha}</p>
+                                    <div class="padres-grid">
+                                        <div class="padre-item">
+                                            <img src="${mamaFoto}" class="padre-thumb" onclick="window.openModal('${mamaFoto}')">
+                                            <span>M: ${animal.nombre}</span>
+                                        </div>
+                                        <div class="padre-item">
+                                            <img src="${papaFoto}" class="padre-thumb" onclick="window.openModal('${papaFoto}')">
+                                            <span>P: ${papaNombre}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div class="acciones">
+                            <div id="child-det-${h.id}" class="mini-actions">
                                 <button class="btn-accion btn-editar" onclick="window.editarAnimal('${h.id}', '${h.nombre}', '${h.raza}')">✏️</button>
                                 <button class="btn-accion btn-vender" onclick="window.venderAnimal('${h.id}', '${h.nombre}')">💰</button>
                                 <button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${h.id}', '${h.nombre}')">🗑️</button>
@@ -210,6 +207,7 @@ window.cargarInventario = async (verHistorial = false) => {
                 </div>`;
             }
 
+            // --- TARJETA MADRE (COMPACTA CON ZOOM) ---
             listado.innerHTML += `
                 <div class="animal-card">
                     <div class="animal-header" onclick="window.toggleDetails('${animal.id}')">
@@ -222,22 +220,23 @@ window.cargarInventario = async (verHistorial = false) => {
                     </div>
 
                     <div id="details-${animal.id}" class="animal-details">
-                        <p><strong>Sexo:</strong> ${animal.sexo === 'H' ? 'Hembra' : 'Macho'}</p>
-                        ${animal.nombrePadre ? `<p><strong>Padre:</strong> ${animal.nombrePadre}</p>` : ''}
+                        <div class="info-con-foto">
+                            ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-preview" onclick="window.openModal('${animal.fotoURL}')">` : ''}
+                            <div class="datos-texto">
+                                <p><strong>Sexo:</strong> ${animal.sexo === 'H' ? 'Hembra' : 'Macho'}</p>
+                                ${animal.nombrePadre ? `<p><strong>Padre:</strong> ${animal.nombrePadre}</p>` : ''}
+                                <p><strong>Compra:</strong> ${formatCOP(animal.precioCompra)}</p>
+                                ${verHistorial ? `<p><strong>Venta:</strong> ${formatCOP(animal.precioVenta)}</p>` : ''}
+                                <p><strong>Nac:</strong> ${animal.fechaNacimiento || '--'}</p>
+                            </div>
+                        </div>
                         
-                        <p><strong>Compra:</strong> ${formatCOP(animal.precioCompra)}</p>
-                        ${verHistorial ? `<p><strong>Venta:</strong> ${formatCOP(animal.precioVenta)}</p>` : ''}
                         ${utilidadHTML}
-                        
-                        <p><strong>Nacimiento:</strong> ${animal.fechaNacimiento || '--'}</p>
-                        
-                        ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-optimizada">` : ''}
-
                         ${hijosHTML}
                         
                         <div class="acciones">
                             ${verHistorial 
-                                ? `<button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️ Borrar Historial</button>`
+                                ? `<button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️ Borrar</button>`
                                 : `<button class="btn-accion btn-editar" onclick="window.editarAnimal('${animal.id}', '${animal.nombre}', '${animal.raza}')">✏️ Editar</button>
                                    <button class="btn-accion btn-vender" onclick="window.venderAnimal('${animal.id}', '${animal.nombre}')">💰 Vender</button>
                                    <button class="btn-accion btn-eliminar" onclick="window.eliminarAnimal('${animal.id}', '${animal.nombre}')">🗑️</button>`
