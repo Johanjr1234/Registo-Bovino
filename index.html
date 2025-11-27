@@ -5,27 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro Ganadero</title>
     <style>
-        /* ESTILOS GENERALES */
         body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; max-width: 600px; margin: auto; }
         .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         h2 { color: #2e7d32; text-align: center; margin-top: 10px;}
         
-        /* MENÚ */
         .nav-menu { display: flex; gap: 10px; margin-bottom: 20px; }
         .nav-btn { flex: 1; padding: 12px; text-align: center; background: #eee; text-decoration: none; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 0.9em; }
         .nav-btn.active { background: #2e7d32; color: white; border: none; }
 
-        /* FORMULARIO */
         label { display: block; margin-top: 15px; font-weight: bold; color: #333; }
         input, select { width: 100%; padding: 12px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
         
-        /* SECCIÓN PADRES */
         .padres-section { background-color: #f1f8e9; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #c5e1a5; }
         .padres-title { color: #33691e; margin-top: 0; font-size: 1em; border-bottom: 1px solid #a5d6a7; padding-bottom: 5px; margin-bottom: 10px; }
         .sub-label { font-size: 0.9em; color: #558b2f; margin-top: 10px; }
 
         button { background-color: #4CAF50; color: white; cursor: pointer; margin-top: 25px; font-size: 1.1em; font-weight: bold; border: none; width: 100%; padding: 12px; border-radius: 6px; }
-        button:hover { background-color: #45a049; }
         .success { color: green; text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
@@ -39,54 +34,61 @@
         <h2>Registro de Nuevo Animal 🐄</h2>
         
         <form id="registroForm">
-            <label for="nombre">Nombre / Número de Arete:</label>
-            <input type="text" id="nombre" required placeholder="Ej: Lola / 0015">
+            <label for="nombre">Nombre / Número:</label>
+            <input type="text" id="nombre" required placeholder="Ej: MANZANITA">
 
-            <label for="foto">Foto del Animal (Principal):</label>
+            <label for="foto">Foto Principal:</label>
             <input type="file" id="foto" accept="image/*">
 
-            <label for="fechaNacimiento">Fecha de Nacimiento (Opcional):</label>
+            <label for="fechaNacimiento">Fecha Nacimiento:</label>
             <input type="date" id="fechaNacimiento"> 
 
             <label for="sexo">Sexo:</label>
             <select id="sexo" required>
-                <option value="">Seleccione...</option>
-                <option value="H">Hembra (Vaca)</option>
-                <option value="M">Macho (Toro/Novillo)</option>
+                <option value="H">Hembra</option>
+                <option value="M">Macho</option>
             </select>
 
             <label for="raza">Raza:</label>
-            <input type="text" id="raza" placeholder="Ej: Gyr, Jersey, Cruce...">
+            <input type="text" id="raza" placeholder="Ej: Gyr, Criollo...">
+
+            <label for="estadoProductivo">Etapa / Estado Productivo:</label>
+            <select id="estadoProductivo" required>
+                <option value="CRIA">🌱 Cría (Lactante)</option>
+                <option value="LEVANTE">🌾 Levante / Novilla</option>
+                <option value="ORDEÑO">🥛 En Ordeño (Parida)</option>
+                <option value="HORRA">🏖️ Horra (Seca/Preñada)</option>
+                <option value="TORO">🐂 Toro Reproductor</option>
+                <option value="CEBA">🥩 Ceba (Engorde)</option>
+            </select>
 
             <div class="padres-section">
-                <h3 class="padres-title">🧬 Genealogía (Opcional)</h3>
+                <h3 class="padres-title">🧬 Genealogía</h3>
                 
-                <label class="sub-label">Madre (Seleccionar del Inventario):</label>
-                <select id="idMadre">
-                    <option value="">-- Ninguna --</option>
-                </select>
+                <label class="sub-label">Madre (Escribe para buscar):</label>
+                <input list="listaMadres" id="inputMadre" placeholder="Ej: Escribe 'Manza'...">
+                <datalist id="listaMadres">
+                    </datalist>
 
-                <label class="sub-label">Nombre del Padre (Manual):</label>
-                <input type="text" id="nombrePadre" placeholder="Ej: Toro Sansón (Externo)">
-                
-                <label class="sub-label">Foto del Padre:</label>
+                <label class="sub-label">Nombre Padre (Externo):</label>
+                <input type="text" id="nombrePadre" placeholder="Ej: Sansón">
+                <label class="sub-label">Foto Padre:</label>
                 <input type="file" id="fotoPadre" accept="image/*">
             </div>
 
-            <label for="estado">Estado Inicial:</label>
+            <label for="estado">Estado Sistema:</label>
             <select id="estado" required>
                 <option value="ACTIVO">Activo (En Finca)</option>
                 <option value="COMPRADO">Comprado</option>
             </select>
 
-            <label for="precioCompra">Precio de Compra (COP si aplica):</label>
-            <input type="number" id="precioCompra" value="0" min="0" placeholder="Solo números">
+            <label for="precioCompra">Precio Compra ($):</label>
+            <input type="number" id="precioCompra" value="0" min="0">
 
-            <button type="submit">💾 Registrar Animal</button>
+            <button type="submit">💾 Guardar</button>
             <p id="mensaje" class="success"></p>
         </form>
     </div>
-
     <script type="module" src="app.js"></script>
 </body>
 </html>
