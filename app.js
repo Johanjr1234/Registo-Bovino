@@ -5,14 +5,7 @@ import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, serverTimestamp
 // --- HELPERS UI ---
 window.toggleDetails = (id) => { const el = document.getElementById(`details-${id}`); if(el) el.style.display = (el.style.display==='block')?'none':'block'; };
 window.toggleChildDetails = (id) => { const el = document.getElementById(`child-det-${id}`); if(el) el.style.display = (el.style.display==='block')?'none':'block'; };
-window.openModal = (url) => { 
-    if(url && !url.includes('flaticon')){ 
-        document.getElementById("imageModal").style.display = "flex"; 
-        document.getElementById("imgFull").src = url; 
-    } else {
-        alert("🖼️ Imagen no disponible o cargada sin conexión."); // Mensaje si la foto no es real o está offline
-    }
-};
+window.openModal = (url) => { if(url && !url.includes('flaticon')){ document.getElementById("imageModal").style.display = "flex"; document.getElementById("imgFull").src = url; }};
 
 // --- ACCIONES PRINCIPALES ---
 window.venderAnimal = async (id, nombre) => {
@@ -20,65 +13,40 @@ window.venderAnimal = async (id, nombre) => {
     if (precio === null) return;
     if (isNaN(parseFloat(precio))) return alert("Inválido");
     if (confirm(`¿Mover ${nombre} a VENDIDOS?`)) {
-        try { 
-            await updateDoc(doc(db, "animales", id), { estado: "VENDIDO", precioVenta: parseFloat(precio), fechaSalida: new Date().toISOString().split('T')[0] }); 
-            alert("✅ Vendido. (Sincronizando si hay conexión)"); 
-            window.filtrarInventario('TODOS'); 
-        } catch (e) { alert("❌ Error al vender: " + e.message); }
+        try { await updateDoc(doc(db, "animales", id), { estado: "VENDIDO", precioVenta: parseFloat(precio), fechaSalida: new Date().toISOString().split('T')[0] }); alert("✅ Vendido."); window.filtrarInventario('TODOS'); } catch (e) { alert(e.message); }
     }
 };
 
 window.restaurarAnimal = async (id, nombre) => {
     if (confirm(`🔄 ¿Restaurar a ${nombre} al inventario activo?\n(Se borrará el precio de venta)`)) {
-        try { 
-            await updateDoc(doc(db, "animales", id), { estado: "ACTIVO", precioVenta: 0, fechaSalida: null }); 
-            alert("✅ Restaurado. (Sincronizando si hay conexión)"); 
-            window.filtrarInventario('HISTORIAL'); 
-        } catch (e) { alert("❌ Error al restaurar: " + e.message); }
+        try { await updateDoc(doc(db, "animales", id), { estado: "ACTIVO", precioVenta: 0, fechaSalida: null }); alert("✅ Restaurado."); window.filtrarInventario('HISTORIAL'); } catch (e) { alert(e.message); }
     }
 };
 
 window.eliminarAnimal = async (id, nombre) => {
     if (confirm(`⚠️ ¿ELIMINAR DEFINITIVAMENTE a ${nombre}?`)) {
-        try { 
-            await deleteDoc(doc(db, "animales", id)); 
-            alert("🗑️ Eliminado. (Sincronizando si hay conexión)"); 
-            window.location.reload(); 
-        } catch (e) { alert("❌ Error al eliminar: " + e.message); }
+        try { await deleteDoc(doc(db, "animales", id)); alert("🗑️ Eliminado."); window.location.reload(); } catch (e) { alert(e.message); }
     }
 };
 
+// CAMBIAR ESTADO PRODUCTIVO
 window.cambiarEstado = async (id, nuevoEstado) => {
-    try { 
-        await updateDoc(doc(db, "animales", id), { estadoProductivo: nuevoEstado }); 
-        alert("✅ Estado actualizado a " + nuevoEstado + " (Sincronizando si hay conexión)"); 
-        window.filtrarInventario('TODOS'); 
-    } catch (e) { alert("❌ Error al cambiar estado: " + e.message); }
+    try { await updateDoc(doc(db, "animales", id), { estadoProductivo: nuevoEstado }); alert("✅ Estado actualizado a " + nuevoEstado); window.filtrarInventario('TODOS'); } catch (e) { alert("Error al cambiar estado"); }
 };
 
 window.editarAnimal = async (id, nombre, raza) => {
     const n = prompt("Nombre:", nombre); if(!n) return;
     const r = prompt("Raza:", raza); if(!r) return;
-    try { 
-        await updateDoc(doc(db, "animales", id), { nombre: n.toUpperCase(), raza: r }); 
-        alert("✅ Editado. (Sincronizando si hay conexión)"); 
-        window.location.reload(); 
-    } catch (e) { alert("❌ Error al editar: " + e.message); }
+    try { await updateDoc(doc(db, "animales", id), { nombre: n.toUpperCase(), raza: r }); alert("✅ Editado."); window.location.reload(); } catch (e) { alert(e.message); }
 };
 
 // --- UTILIDADES ---
 async function subirFotoAImgBB(file) {
-    if (!navigator.onLine) {
-        throw new Error("❌ No hay conexión a internet para subir fotos.");
-    }
-    if (!IMGBB_API_KEY) throw new Error("Falta API Key de ImgBB.");
+    if (!IMGBB_API_KEY) throw new Error("Falta API Key");
     const fd = new FormData(); fd.append("image", file); fd.append("key", IMGBB_API_KEY);
     const res = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body: fd });
-    const data = await res.json(); 
-    if (data.success) return data.data.url; 
-    throw new Error("Error al subir foto a ImgBB: " + (data.error ? data.error.message : 'Desconocido'));
+    const data = await res.json(); if (data.success) return data.data.url; throw new Error("Error foto");
 }
-
 function calcularEdad(d) {
     if (!d) return "--"; const b = new Date(d); const n = new Date();
     let y = n.getFullYear() - b.getFullYear(); let m = n.getMonth() - b.getMonth();
@@ -87,25 +55,6 @@ function calcularEdad(d) {
     return `${y} Años, ${m} Meses`;
 }
 function formatCOP(v) { return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v); }
-
-// --- INDICADOR DE CONEXIÓN ---
-const statusDiv = document.createElement('div');
-statusDiv.style.cssText = 'position:fixed; bottom:10px; right:10px; padding:8px 12px; border-radius:5px; background:rgba(0,0,0,0.7); color:white; font-size:0.8em; z-index:1000;';
-document.body.appendChild(statusDiv);
-
-function updateOnlineStatus() {
-    if (navigator.onLine) {
-        statusDiv.textContent = '🟢 Online';
-        statusDiv.style.backgroundColor = 'rgba(46, 125, 50, 0.7)'; // Verde
-    } else {
-        statusDiv.textContent = '🔴 Offline';
-        statusDiv.style.backgroundColor = 'rgba(211, 47, 47, 0.7)'; // Rojo
-    }
-}
-
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus(); // Cargar estado inicial
 
 // --- FINANZAS ---
 function actualizarFinanzas(data) {
@@ -131,7 +80,7 @@ const listaMadres = document.getElementById('listaMadres');
 async function cargarMadres() {
     if (!listaMadres) return;
     try {
-        const snap = await getDocs(collection(db, "animales")); // Usa getDocs directamente
+        const snap = await getDocs(collection(db, "animales"));
         listaMadres.innerHTML = '';
         snap.forEach(doc => {
             const a = doc.data();
@@ -142,7 +91,7 @@ async function cargarMadres() {
                 listaMadres.appendChild(op);
             }
         });
-    } catch (e) { console.error("Error cargando madres:", e); }
+    } catch (e) { console.error(e); }
 }
 
 if (form) {
@@ -153,18 +102,8 @@ if (form) {
         try {
             const file = document.getElementById('foto').files[0];
             const filePadre = document.getElementById('fotoPadre') ? document.getElementById('fotoPadre').files[0] : null; 
-            let url = '';
-            let urlPadre = '';
-
-            // Intentar subir fotos solo si hay conexión
-            if (navigator.onLine) {
-                if (file) url = await subirFotoAImgBB(file);
-                if (filePadre) urlPadre = await subirFotoAImgBB(filePadre);
-            } else {
-                msg.textContent = '⚠️ Sin conexión: Las fotos se subirán cuando haya internet.';
-                msg.style.color = 'orange';
-            }
-
+            let url = file ? await subirFotoAImgBB(file) : '';
+            let urlPadre = filePadre ? await subirFotoAImgBB(filePadre) : '';
             const madreVal = document.getElementById('inputMadre').value.toUpperCase();
 
             await addDoc(collection(db, 'animales'), {
@@ -175,38 +114,29 @@ if (form) {
                 estadoProductivo: document.getElementById('estadoProductivo').value,
                 idMadre: madreVal || null,
                 nombrePadre: document.getElementById('nombrePadre').value.toUpperCase() || null,
-                fotoPadreURL: url, // Guarda la URL si se subió, sino queda vacía
+                fotoPadreURL: urlPadre,
                 estado: document.getElementById('estado').value,
                 precioCompra: parseFloat(document.getElementById('precioCompra').value) || 0,
                 precioVenta: 0,
-                fotoURL: url, // Guarda la URL si se subió, sino queda vacía
+                fotoURL: url,
                 timestamp: serverTimestamp()
             });
-            msg.textContent = '✅ Guardado! (Sincronizando si hay conexión)'; msg.style.color = 'green'; form.reset(); cargarMadres();
+            msg.textContent = '✅ Guardado!'; msg.style.color = 'green'; form.reset(); cargarMadres();
         } catch (e) { msg.textContent = '❌ Error: ' + e.message; msg.style.color = 'red'; }
     });
 }
 
-// --- INVENTARIO (LISTADO OFFLINE) ---
+// --- INVENTARIO (CORREGIDO VISUALMENTE) ---
 const listado = document.getElementById('inventario-listado');
-let animalesCache = []; // Esta caché se llenará con los datos de Firebase (offline o no)
+let animalesCache = [];
 
 window.filtrarInventario = async (filtro = 'TODOS') => {
     if (!listado) return;
-    
-    listado.innerHTML = '<p style="text-align: center;">Cargando inventario...</p>';
-
-    try {
-        // Carga los datos de Firebase. Con persistencia habilitada, intentará desde el caché.
+    if (animalesCache.length === 0) {
+        listado.innerHTML = '<p style="text-align: center;">Cargando...</p>';
         const snap = await getDocs(collection(db, "animales"));
-        animalesCache = []; // Limpiar caché antes de rellenar
         snap.forEach(d => animalesCache.push({ id: d.id, ...d.data() }));
         actualizarFinanzas(animalesCache);
-    } catch (e) {
-        console.error("Error al cargar datos (posiblemente offline):", e);
-        // Si hay un error al cargar (ej. no hay datos en caché ni conexión), se queda el mensaje de cargando
-        listado.innerHTML = '<p style="text-align: center; color: red;">❌ Error al cargar. ¿Estás sin conexión o es la primera vez?</p>';
-        return; 
     }
 
     const esHistorial = (filtro === 'HISTORIAL');
@@ -214,6 +144,7 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
         if (esHistorial) return a.estado === "VENDIDO";
         if (a.estado === "VENDIDO") return false;
         if (filtro === 'TODOS') return true;
+        // Si no tiene estado, no pasa el filtro específico
         return (a.estadoProductivo) === filtro;
     });
 
@@ -231,17 +162,18 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
 
     listado.innerHTML = '';
     const presentes = listaFiltrada.map(a => a.nombre);
-    const fb = "https://cdn-icons-png.flaticon.com/512/1998/1998610.png"; // Fallback para fotos
+    const fb = "https://cdn-icons-png.flaticon.com/512/1998/1998610.png";
 
     listaFiltrada.forEach(animal => {
         if (!esHistorial && animal.idMadre && presentes.includes(animal.idMadre)) return; 
         
         const edad = calcularEdad(animal.fechaNacimiento);
         const hijos = mapaHijos[animal.nombre] || [];
-        // Muestra la foto o el fallback si no está disponible o sin conexión
-        const foto = (animal.fotoURL && navigator.onLine) ? animal.fotoURL : fb; 
+        const foto = animal.fotoURL || fb;
+        // Si no tiene estado, lo dejamos vacío en lugar de "SIN_ASIGNAR"
         const estProd = animal.estadoProductivo; 
 
+        // SELECTOR DE ESTADO (Incluye TORO y CEBA)
         const getSelector = (id, estadoActual) => `
             <select class="estado-selector" onchange="window.cambiarEstado('${id}', this.value)" onclick="event.stopPropagation()">
                 <option value="" disabled ${!estadoActual?'selected':''}>Seleccionar Estado...</option>
@@ -264,12 +196,11 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
         let hijosHTML = '';
         if (hijos.length > 0) {
             hijosHTML = `<div class="offspring-container"><span class="offspring-title">🧬 Descendencia (${hijos.length})</span>${hijos.map(h => {
-                // Fotos de hijos y padres solo si hay conexión
-                const hFoto = (h.fotoURL && navigator.onLine) ? h.fotoURL : fb; 
+                const hFoto = h.fotoURL || fb; 
                 const hEdad = calcularEdad(h.fechaNacimiento);
                 const hEstProd = h.estadoProductivo;
-                const mamaFoto = (mapaFotos[h.idMadre] && navigator.onLine) ? mapaFotos[h.idMadre] : fb;
-                const papaFoto = (h.fotoPadreURL && navigator.onLine) ? h.fotoPadreURL : fb;
+                const mamaFoto = mapaFotos[h.idMadre] || fb;
+                const papaFoto = h.fotoPadreURL || fb;
                 const papaNombre = h.nombrePadre || 'N/A';
                 
                 return `
@@ -303,6 +234,7 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
             }).join('')}</div>`;
         }
 
+        // --- RENDERIZADO TARJETA PRINCIPAL ---
         listado.innerHTML += `
             <div class="animal-card">
                 <div class="animal-header" onclick="window.toggleDetails('${animal.id}')">
@@ -317,7 +249,7 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
 
                 <div id="details-${animal.id}" class="animal-details">
                     <div class="info-con-foto">
-                        ${animal.fotoURL ? `<img src="${foto}" class="foto-preview" onclick="window.openModal('${foto}')">` : ''}
+                        ${animal.fotoURL ? `<img src="${animal.fotoURL}" class="foto-preview" onclick="window.openModal('${animal.fotoURL}')">` : ''}
                         <div class="datos-texto">
                             ${!esHistorial ? getSelector(animal.id, estProd) : ''}
                             ${animal.nombrePadre ? `<p><strong>Padre:</strong> ${animal.nombrePadre}</p>` : ''}
@@ -343,4 +275,3 @@ window.filtrarInventario = async (filtro = 'TODOS') => {
 };
 
 if (listado) window.filtrarInventario('TODOS');
-```http://googleusercontent.com/generated_image_content/0
