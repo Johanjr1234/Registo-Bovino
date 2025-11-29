@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; max-width: 800px; margin: auto; }
+        body { font-family: sans-serif; padding: 15px; background-color: #f4f4f9; max-width: 800px; margin: auto; padding-bottom: 80px; }
         
         .nav-menu { display: flex; gap: 10px; margin-bottom: 15px; }
         .nav-btn { flex: 1; padding: 12px; text-align: center; background: #fff; color: #333; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; text-decoration: none; }
@@ -20,51 +20,76 @@
         .kpi-valor { display: block; font-size: 1.1em; font-weight: bold; margin-top: 5px; }
         .grafico-container { height: 200px; width: 100%; }
 
-        /* NUEVOS FILTROS DESLIZABLES */
+        /* FILTROS CON CONTADORES */
         .filtros-wrapper { overflow-x: auto; white-space: nowrap; margin-bottom: 15px; padding-bottom: 5px; }
         .filtros { display: inline-flex; gap: 5px; }
-        .btn-filtro { padding: 8px 15px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; color: #666; border-radius: 20px; font-size: 0.9em; }
+        .btn-filtro { padding: 8px 15px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; color: #666; border-radius: 20px; font-size: 0.85em; display: flex; align-items: center; gap: 5px; }
         .btn-filtro.seleccionado { background: #2e7d32; color: white; border-color: #2e7d32; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .btn-historial { background: #455a64; color: white; } /* Botón historial diferente */
+        .btn-historial { background: #455a64; color: white; } 
+        .btn-papelera { background: #5d4037; color: white; border-color: #3e2723; } /* Color café para basura */
+        
+        .count-badge { background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.8em; }
+        .seleccionado .count-badge { background: rgba(255,255,255,0.3); }
 
         /* TARJETAS */
         .animal-card { border: 1px solid #ddd; padding: 0; margin-bottom: 15px; border-radius: 12px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; }
-        .animal-header { display: flex; align-items: center; cursor: pointer; gap: 12px; padding: 12px; background: white; }
-        .cow-thumb { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #2e7d32; }
-        .no-thumb { width: 60px; height: 60px; border-radius: 50%; background: #eee; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid #ddd; }
+        .animal-header { display: flex; align-items: center; cursor: pointer; gap: 12px; padding: 12px; background: white; position: relative; }
         
+        /* GALERIA DE FOTOS (NUEVO) */
+        .cow-thumb { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #2e7d32; flex-shrink: 0; }
+        
+        .gallery-container { width: 100px; height: 100px; border-radius: 8px; overflow: hidden; position: relative; border: 2px solid #ddd; background: #eee; flex-shrink: 0; }
+        .gallery-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100%; width: 100%; scrollbar-width: none; }
+        .gallery-scroll::-webkit-scrollbar { display: none; }
+        .gallery-img { scroll-snap-align: center; width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; }
+        .gallery-badge { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; font-size: 0.6em; padding: 2px 4px; border-radius: 4px; pointer-events: none; }
+
         .info-resumen { flex: 1; }
         .nombre-animal { font-weight: 800; font-size: 1.1em; color: #333; }
         .raza-animal { font-size: 0.9em; color: #666; display: block; }
         .prod-badge { font-size: 0.75em; background: #e3f2fd; color: #1565c0; padding: 2px 6px; border-radius: 4px; border: 1px solid #90caf9; margin-left: 5px;}
         .age-badge { background-color: #f0ad4e; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; }
+        .sold-badge { background-color: #455a64; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; }
 
         .animal-details { display: none; padding: 15px; border-top: 1px solid #eee; background: #fafafa; }
         .info-con-foto { display: flex; gap: 15px; align-items: flex-start; margin-bottom: 15px; }
-        .foto-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #ddd; cursor: zoom-in; background: #eee; }
         
-        /* CAMBIO DE ESTADO (SELECT) */
+        /* ESTADO SELECTOR */
         .estado-selector { margin-bottom: 10px; padding: 5px; width: 100%; border-radius: 5px; border: 1px solid #1976d2; color: #1565c0; font-weight: bold; background: #e3f2fd; }
 
         /* CRÍAS & PADRES */
         .cria-full-card { background: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        .cria-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;}
+        .cria-nombre { font-weight: bold; color: #33691e; font-size: 0.95em; }
+        
+        /* FECHA EN CRÍA (Ajuste solicitado) */
+        .cria-fecha { font-size: 0.75em; color: #558b2f; margin-left: auto; margin-right: 10px; text-align: right; line-height: 1.1; }
+
+        .cria-body { display: flex; gap: 10px; }
         .padres-grid { display: flex; gap: 10px; margin-top: 5px; background: rgba(255,255,255,0.6); padding: 5px; border-radius: 5px; }
         .padre-thumb { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #999; cursor: zoom-in; flex-shrink: 0;}
 
         /* BOTONES */
-        .acciones { display: flex; gap: 8px; margin-top: 5px; }
-        .btn-accion { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 0.9em; }
-        .btn-vender { background-color: #f57f17; } .btn-editar { background-color: #1976d2; } .btn-eliminar { background-color: #d32f2f; } 
-        .btn-restaurar { background-color: #43a047; } /* Verde para deshacer venta */
+        .acciones { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+        .btn-accion { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 0.9em; min-width: 80px; }
+        .btn-vender { background-color: #f57f17; } .btn-editar { background-color: #1976d2; } 
+        .btn-eliminar { background-color: #d32f2f; } /* Papelera */
+        .btn-destruir { background-color: #b71c1c; border: 2px solid white; } /* Borrado total */
+        .btn-restaurar { background-color: #43a047; } 
+        .btn-foto { background-color: #9c27b0; } /* Nueva Foto */
 
         .profit-badge { display: block; margin-top: 5px; padding: 5px; border-radius: 4px; font-weight: bold; text-align: center; font-size: 0.9em; }
         .profit-positive { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
         .profit-negative { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .papelera-warning { background: #fff3e0; color: #e65100; padding: 10px; text-align: center; font-size: 0.85em; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ffe0b2; }
 
         /* MODAL */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
         .modal-content { margin: auto; display: block; max-width: 95%; max-height: 95vh; object-fit: contain; }
         .close-modal { position: absolute; top: 15px; right: 25px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
+        
+        /* INPUT OCULTO PARA FOTOS */
+        #inputFotoNueva { display: none; }
     </style>
 </head>
 <body>
@@ -85,15 +110,20 @@
 
     <div class="filtros-wrapper">
         <div class="filtros">
-            <button class="btn-filtro seleccionado" onclick="aplicarFiltro('TODOS', this)">🐮 Todos</button>
-            <button class="btn-filtro" onclick="aplicarFiltro('ORDEÑO', this)">🥛 Ordeño</button>
-            <button class="btn-filtro" onclick="aplicarFiltro('HORRA', this)">🏖️ Horras</button>
-            <button class="btn-filtro" onclick="aplicarFiltro('CRIA', this)">🌱 Crías</button>
-            <button class="btn-filtro" onclick="aplicarFiltro('LEVANTE', this)">🌾 Levante</button>
-            <button class="btn-filtro" onclick="aplicarFiltro('TORO', this)">🐂 Toros</button>
-            <button class="btn-filtro" onclick="aplicarFiltro('CEBA', this)">🥩 Ceba</button>
-            <button class="btn-filtro btn-historial" onclick="aplicarFiltro('HISTORIAL', this)">💰 Vendidos</button>
+            <button class="btn-filtro seleccionado" onclick="aplicarFiltro('TODOS', this)">🐮 Todos <span class="count-badge" id="c-todos">0</span></button>
+            <button class="btn-filtro" onclick="aplicarFiltro('ORDEÑO', this)">🥛 Ordeño <span class="count-badge" id="c-ordeno">0</span></button>
+            <button class="btn-filtro" onclick="aplicarFiltro('HORRA', this)">🏖️ Horras <span class="count-badge" id="c-horra">0</span></button>
+            <button class="btn-filtro" onclick="aplicarFiltro('CRIA', this)">🌱 Crías <span class="count-badge" id="c-cria">0</span></button>
+            <button class="btn-filtro" onclick="aplicarFiltro('LEVANTE', this)">🌾 Levante <span class="count-badge" id="c-levante">0</span></button>
+            <button class="btn-filtro" onclick="aplicarFiltro('TORO', this)">🐂 Toros <span class="count-badge" id="c-toro">0</span></button>
+            <button class="btn-filtro" onclick="aplicarFiltro('CEBA', this)">🥩 Ceba <span class="count-badge" id="c-ceba">0</span></button>
+            <button class="btn-filtro btn-historial" onclick="aplicarFiltro('HISTORIAL', this)">💰 Vendidos <span class="count-badge" id="c-vendidos">0</span></button>
+            <button class="btn-filtro btn-papelera" onclick="aplicarFiltro('PAPELERA', this)">🗑️ Papelera <span class="count-badge" id="c-papelera">0</span></button>
         </div>
+    </div>
+    
+    <div id="papelera-controls" style="display:none; text-align: center; margin-bottom: 15px;">
+        <button onclick="window.vaciarPapelera()" style="background: #b71c1c; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer;">⚠️ VACIAR PAPELERA AHORA</button>
     </div>
 
     <div id="inventario-listado"><p style="text-align: center;">Cargando...</p></div>
@@ -101,15 +131,21 @@
     <div id="imageModal" class="modal" onclick="document.getElementById('imageModal').style.display='none'">
         <span class="close-modal">&times;</span><img class="modal-content" id="imgFull">
     </div>
+    
+    <input type="file" id="inputFotoNueva" accept="image/*" onchange="window.procesarNuevaFoto(this)">
 
     <script type="module" src="app.js"></script>
     <script>
-        // Función puente para llamar al JS module
+        // Función puente
         function aplicarFiltro(tipo, btn) {
-            // Actualizar estilo visual botones
             document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('seleccionado'));
             btn.classList.add('seleccionado');
-            // Llamar lógica
+            
+            // Mostrar/Ocultar botón de vaciar papelera
+            const controls = document.getElementById('papelera-controls');
+            if(tipo === 'PAPELERA') controls.style.display = 'block';
+            else controls.style.display = 'none';
+
             window.filtrarInventario(tipo);
         }
     </script>
