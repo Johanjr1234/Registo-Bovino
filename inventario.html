@@ -20,13 +20,13 @@
         .kpi-valor { display: block; font-size: 1.1em; font-weight: bold; margin-top: 5px; }
         .grafico-container { height: 200px; width: 100%; }
 
-        /* FILTROS CON CONTADORES */
+        /* FILTROS */
         .filtros-wrapper { overflow-x: auto; white-space: nowrap; margin-bottom: 15px; padding-bottom: 5px; }
         .filtros { display: inline-flex; gap: 5px; }
         .btn-filtro { padding: 8px 15px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; color: #666; border-radius: 20px; font-size: 0.85em; display: flex; align-items: center; gap: 5px; }
         .btn-filtro.seleccionado { background: #2e7d32; color: white; border-color: #2e7d32; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .btn-historial { background: #455a64; color: white; } 
-        .btn-papelera { background: #5d4037; color: white; border-color: #3e2723; } /* Color café para basura */
+        .btn-papelera { background: #5d4037; color: white; border-color: #3e2723; }
         
         .count-badge { background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.8em; }
         .seleccionado .count-badge { background: rgba(255,255,255,0.3); }
@@ -35,14 +35,28 @@
         .animal-card { border: 1px solid #ddd; padding: 0; margin-bottom: 15px; border-radius: 12px; background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); overflow: hidden; }
         .animal-header { display: flex; align-items: center; cursor: pointer; gap: 12px; padding: 12px; background: white; position: relative; }
         
-        /* GALERIA DE FOTOS (NUEVO) */
-        .cow-thumb { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #2e7d32; flex-shrink: 0; }
-        
+        /* --- GALERIA DESLIZANTE (CORREGIDA) --- */
         .gallery-container { width: 100px; height: 100px; border-radius: 8px; overflow: hidden; position: relative; border: 2px solid #ddd; background: #eee; flex-shrink: 0; }
-        .gallery-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100%; width: 100%; scrollbar-width: none; }
-        .gallery-scroll::-webkit-scrollbar { display: none; }
-        .gallery-img { scroll-snap-align: center; width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; }
-        .gallery-badge { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; font-size: 0.6em; padding: 2px 4px; border-radius: 4px; pointer-events: none; }
+        
+        .gallery-scroll { 
+            display: flex; 
+            overflow-x: auto; 
+            scroll-snap-type: x mandatory; 
+            height: 100%; 
+            width: 100%; 
+            scrollbar-width: none; /* Firefox */
+        }
+        .gallery-scroll::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+        
+        .gallery-img { 
+            scroll-snap-align: center; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            flex: 0 0 100%; /* ESTA LINEA ES CLAVE: Fuerza a que la foto no se encoja */
+        }
+        
+        .gallery-badge { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; font-size: 0.6em; padding: 2px 4px; border-radius: 4px; pointer-events: none; z-index: 2;}
 
         .info-resumen { flex: 1; }
         .nombre-animal { font-weight: 800; font-size: 1.1em; color: #333; }
@@ -52,17 +66,22 @@
         .sold-badge { background-color: #455a64; color: white; padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: bold; }
 
         .animal-details { display: none; padding: 15px; border-top: 1px solid #eee; background: #fafafa; }
-        .info-con-foto { display: flex; gap: 15px; align-items: flex-start; margin-bottom: 15px; }
         
         /* ESTADO SELECTOR */
         .estado-selector { margin-bottom: 10px; padding: 5px; width: 100%; border-radius: 5px; border: 1px solid #1976d2; color: #1565c0; font-weight: bold; background: #e3f2fd; }
+
+        /* --- SECCIÓN VACUNAS --- */
+        .vacunas-section { margin-top: 15px; padding: 10px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; }
+        .vacunas-title { font-weight: bold; color: #00796b; font-size: 0.9em; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .vacuna-item { font-size: 0.85em; padding: 4px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
+        .vacuna-warning { color: #d32f2f; font-weight: bold; } /* Alerta roja */
+        .vacuna-ok { color: #388e3c; }
+        .btn-add-vacuna { background: #009688; color: white; border: none; border-radius: 4px; padding: 2px 8px; font-size: 0.8em; cursor: pointer; }
 
         /* CRÍAS & PADRES */
         .cria-full-card { background: #f1f8e9; border: 1px solid #c5e1a5; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
         .cria-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;}
         .cria-nombre { font-weight: bold; color: #33691e; font-size: 0.95em; }
-        
-        /* FECHA EN CRÍA (Ajuste solicitado) */
         .cria-fecha { font-size: 0.75em; color: #558b2f; margin-left: auto; margin-right: 10px; text-align: right; line-height: 1.1; }
 
         .cria-body { display: flex; gap: 10px; }
@@ -70,13 +89,13 @@
         .padre-thumb { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid #999; cursor: zoom-in; flex-shrink: 0;}
 
         /* BOTONES */
-        .acciones { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+        .acciones { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
         .btn-accion { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 0.9em; min-width: 80px; }
         .btn-vender { background-color: #f57f17; } .btn-editar { background-color: #1976d2; } 
-        .btn-eliminar { background-color: #d32f2f; } /* Papelera */
-        .btn-destruir { background-color: #b71c1c; border: 2px solid white; } /* Borrado total */
+        .btn-eliminar { background-color: #d32f2f; }
+        .btn-destruir { background-color: #b71c1c; border: 2px solid white; }
         .btn-restaurar { background-color: #43a047; } 
-        .btn-foto { background-color: #9c27b0; } /* Nueva Foto */
+        .btn-foto { background-color: #9c27b0; }
 
         .profit-badge { display: block; margin-top: 5px; padding: 5px; border-radius: 4px; font-weight: bold; text-align: center; font-size: 0.9em; }
         .profit-positive { background-color: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
@@ -88,7 +107,6 @@
         .modal-content { margin: auto; display: block; max-width: 95%; max-height: 95vh; object-fit: contain; }
         .close-modal { position: absolute; top: 15px; right: 25px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
         
-        /* INPUT OCULTO PARA FOTOS */
         #inputFotoNueva { display: none; }
     </style>
 </head>
@@ -136,16 +154,12 @@
 
     <script type="module" src="app.js"></script>
     <script>
-        // Función puente
         function aplicarFiltro(tipo, btn) {
             document.querySelectorAll('.btn-filtro').forEach(b => b.classList.remove('seleccionado'));
             btn.classList.add('seleccionado');
-            
-            // Mostrar/Ocultar botón de vaciar papelera
             const controls = document.getElementById('papelera-controls');
             if(tipo === 'PAPELERA') controls.style.display = 'block';
             else controls.style.display = 'none';
-
             window.filtrarInventario(tipo);
         }
     </script>
